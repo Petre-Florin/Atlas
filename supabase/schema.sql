@@ -142,3 +142,29 @@ update habits
 set sort_order = ordered.rn
 from ordered
 where habits.id = ordered.id;
+
+-- ============================================================
+-- TARGETS (cumulative counters toward a goal — e.g. "LeetCode
+-- questions", target 500). New table — if you already ran the
+-- rest of this file, you only need to run this block.
+-- ============================================================
+create table if not exists targets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  unit text not null default '',
+  current_count int not null default 0,
+  target_count int not null default 0,
+  archived boolean not null default false,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists targets_user_idx on targets (user_id);
+
+alter table targets enable row level security;
+
+create policy "Users manage their own targets"
+  on targets for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

@@ -11,6 +11,7 @@ import {
   getTodayJournal,
   getRecentActivity,
   getGeneralActivityDates,
+  getTargets,
   computeDailyScore,
   reachedMilestoneToday,
 } from "@/lib/strands";
@@ -29,13 +30,14 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [goals, habits, journal, activity, generalDates, timeZone] = await Promise.all([
+  const [goals, habits, journal, activity, generalDates, timeZone, targets] = await Promise.all([
     getGoals(),
     getHabitsWithStreaks(),
     getTodayJournal(),
     getRecentActivity(),
     getGeneralActivityDates(),
     getUserTimezone(),
+    getTargets(),
   ]);
 
   const doneCount = goals.filter((g) => g.done).length;
@@ -55,7 +57,7 @@ export default async function DashboardPage() {
           <MilestoneBanner habitName={milestoneHabit.name} streak={milestoneHabit.streak} />
         )}
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <Widget eyebrow="Focus" title="Today's goals" href="/goals" delay={0}>
             <div className="flex items-center gap-4">
               <ProgressRing value={goalsRatio} />
@@ -94,7 +96,28 @@ export default async function DashboardPage() {
             )}
           </Widget>
 
-          <Widget eyebrow="Today" title="Journal" href="/journal" delay={160}>
+          <Widget eyebrow="Building" title="Targets" href="/targets" delay={140}>
+            {targets.length === 0 ? (
+              <p className="text-sm text-paper-muted">No targets tracked yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {targets.slice(0, 3).map((t) => (
+                  <li
+                    key={t.id}
+                    className="flex items-center justify-between text-xs text-paper-muted"
+                  >
+                    <span className="truncate">{t.title}</span>
+                    <span className="font-data flex-none">
+                      {t.current_count}
+                      {t.target_count > 0 ? `/${t.target_count}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Widget>
+
+          <Widget eyebrow="Today" title="Journal" href="/journal" delay={200}>
             <p className="text-sm text-paper-muted">
               {journalStarted
                 ? "Today's entry is in progress."

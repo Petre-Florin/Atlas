@@ -256,6 +256,140 @@ export async function moveHabit(formData: FormData) {
   revalidatePath("/habits");
 }
 
+// ---------- Targets ----------
+
+export async function addTarget(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  const unit = String(formData.get("unit") || "").trim();
+  const targetCount = Math.max(0, Number(formData.get("targetCount")) || 0);
+  if (!title) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("targets")
+    .select("sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const nextOrder = (existing?.[0]?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase.from("targets").insert({
+    user_id: user.id,
+    title,
+    unit,
+    target_count: targetCount,
+    sort_order: nextOrder,
+  });
+  logIfError("addTarget", error);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
+export async function incrementTarget(formData: FormData) {
+  const id = String(formData.get("id"));
+  const delta = Number(formData.get("delta")) || 0;
+  const currentCount = Number(formData.get("currentCount")) || 0;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("targets")
+    .update({ current_count: Math.max(0, currentCount + delta) })
+    .eq("id", id);
+  logIfError("incrementTarget", error);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
+export async function editTarget(formData: FormData) {
+  const id = String(formData.get("id"));
+  const title = String(formData.get("title") || "").trim();
+  const unit = String(formData.get("unit") || "").trim();
+  const targetCount = Math.max(0, Number(formData.get("targetCount")) || 0);
+  const currentCount = Math.max(0, Number(formData.get("currentCount")) || 0);
+  if (!title) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("targets")
+    .update({
+      title,
+      unit,
+      target_count: targetCount,
+      current_count: currentCount,
+    })
+    .eq("id", id);
+  logIfError("editTarget", error);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
+export async function archiveTarget(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("targets").update({ archived: true }).eq("id", id);
+  logIfError("archiveTarget", error);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
+export async function restoreTarget(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("targets").update({ archived: false }).eq("id", id);
+  logIfError("restoreTarget", error);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
+export async function moveTarget(formData: FormData) {
+  const id = String(formData.get("id"));
+  const direction = String(formData.get("direction")); // "up" | "down"
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: targets, error: listError } = await supabase
+    .from("targets")
+    .select("id, sort_order")
+    .eq("user_id", user.id)
+    .eq("archived", false)
+    .order("sort_order", { ascending: true });
+  logIfError("moveTarget (list)", listError);
+  if (!targets) return;
+
+  const index = targets.findIndex((t) => t.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= targets.length) return;
+
+  const current = targets[index];
+  const swap = targets[swapIndex];
+
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabase.from("targets").update({ sort_order: swap.sort_order }).eq("id", current.id),
+    supabase.from("targets").update({ sort_order: current.sort_order }).eq("id", swap.id),
+  ]);
+  logIfError("moveTarget (swap 1)", e1);
+  logIfError("moveTarget (swap 2)", e2);
+
+  revalidatePath("/");
+  revalidatePath("/targets");
+}
+
 // ---------- Journal ----------
 
 export type JournalSaveState = { ok: boolean; savedAt: number };

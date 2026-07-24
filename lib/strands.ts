@@ -194,6 +194,28 @@ export async function getArchivedHabits() {
   return data ?? [];
 }
 
+export async function getTargets() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("targets")
+    .select("id, title, unit, current_count, target_count")
+    .eq("archived", false)
+    .order("sort_order", { ascending: true });
+  logIfError("getTargets", error);
+  return data ?? [];
+}
+
+export async function getArchivedTargets() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("targets")
+    .select("id, title, unit, current_count, target_count")
+    .eq("archived", true)
+    .order("created_at", { ascending: true });
+  logIfError("getArchivedTargets", error);
+  return data ?? [];
+}
+
 export async function getGeneralActivityDates(): Promise<Set<string>> {
   const supabase = await createClient();
 
