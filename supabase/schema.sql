@@ -168,3 +168,16 @@ create policy "Users manage their own targets"
   on targets for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Atomic increment for targets — fixes a race condition where rapid
+-- clicks could overwrite each other because the client-side count
+-- could go stale between clicks. This function reads and writes the
+-- count in one atomic database operation, so it can't race.
+create or replace function increment_target(target_id uuid, delta int)
+returns void as $$
+begin
+  update targets
+  set current_count = greatest(0, current_count + delta)
+  where id = target_id and user_id = auth.uid();
+end;
+$$ language plpgsql;

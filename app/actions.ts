@@ -294,13 +294,12 @@ export async function addTarget(formData: FormData) {
 export async function incrementTarget(formData: FormData) {
   const id = String(formData.get("id"));
   const delta = Number(formData.get("delta")) || 0;
-  const currentCount = Number(formData.get("currentCount")) || 0;
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("targets")
-    .update({ current_count: Math.max(0, currentCount + delta) })
-    .eq("id", id);
+  const { error } = await supabase.rpc("increment_target", {
+    target_id: id,
+    delta,
+  });
   logIfError("incrementTarget", error);
 
   revalidatePath("/");

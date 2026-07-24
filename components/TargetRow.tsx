@@ -36,7 +36,6 @@ export function TargetRow({
       const fd = new FormData();
       fd.set("id", target.id);
       fd.set("delta", String(delta));
-      fd.set("currentCount", String(target.current_count));
       await incrementTarget(fd);
     });
   }
