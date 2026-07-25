@@ -138,33 +138,7 @@ export function TargetRow({
           </button>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <span className="truncate text-sm text-paper">{target.title}</span>
-        </div>
-
-        <span className="flex-none font-data text-xs text-paper-muted">
-          {optimisticCount}
-          {target.target_count > 0 ? ` / ${target.target_count}` : ""} {target.unit}
-        </span>
-
-        <div className="flex flex-none items-center gap-1">
-          <button
-            type="button"
-            onClick={() => handleIncrement(-1)}
-            aria-label="Decrease by 1"
-            className="rounded-md px-2 py-0.5 text-sm text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
-          >
-            −
-          </button>
-          <button
-            type="button"
-            onClick={() => handleIncrement(1)}
-            aria-label="Increase by 1"
-            className="rounded-md px-2 py-0.5 text-sm text-thread transition-colors hover:bg-thread-soft"
-          >
-            +
-          </button>
-        </div>
+        <span className="min-w-0 flex-1 truncate text-sm text-paper">{target.title}</span>
 
         <div className="flex w-28 flex-none items-center justify-end gap-1">
           <button
@@ -187,9 +161,43 @@ export function TargetRow({
           </form>
         </div>
       </div>
-      {target.target_count > 0 && <ProgressBar value={ratio} />}
+
+      <div className="mb-1.5 flex flex-wrap items-center gap-2 pl-7">
+        <div className="flex flex-none items-center gap-1">
+          <button
+            type="button"
+            onClick={() => handleIncrement(-1)}
+            aria-label="Decrease by 1"
+            className="rounded-md px-2 py-0.5 text-sm text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+          >
+            −
+          </button>
+          <span className="min-w-[3ch] text-center font-data text-xs text-paper-muted">
+            {optimisticCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleIncrement(1)}
+            aria-label="Increase by 1"
+            className="rounded-md px-2 py-0.5 text-sm text-thread transition-colors hover:bg-thread-soft"
+          >
+            +
+          </button>
+        </div>
+
+        <span className="truncate font-data text-xs text-paper-faint">
+          {target.target_count > 0 ? `of ${target.target_count} ` : ""}
+          {target.unit}
+        </span>
+      </div>
+
+      {target.target_count > 0 && (
+        <div className="pl-7">
+          <ProgressBar value={ratio} />
+        </div>
+      )}
       {reached && (
-        <p className="mt-1 text-xs text-grove">Target reached. Nice work.</p>
+        <p className="mt-1 pl-7 text-xs text-grove">Target reached. Nice work.</p>
       )}
     </div>
   );
