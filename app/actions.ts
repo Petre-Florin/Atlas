@@ -83,6 +83,76 @@ export async function deleteGoal(formData: FormData) {
   revalidatePath("/goals");
 }
 
+export async function addGoalTemplate(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("goal_templates")
+    .select("sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const nextOrder = (existing?.[0]?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase
+    .from("goal_templates")
+    .insert({ user_id: user.id, title, sort_order: nextOrder });
+  logIfError("addGoalTemplate", error);
+
+  revalidatePath("/goals");
+}
+
+export async function deleteGoalTemplate(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("goal_templates").delete().eq("id", id);
+  logIfError("deleteGoalTemplate", error);
+
+  revalidatePath("/goals");
+}
+
+export async function addGoalFromTemplate(formData: FormData) {
+  const title = String(formData.get("title") || "").trim();
+  if (!title) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const todayDate = await today();
+
+  const { data: existingToday } = await supabase
+    .from("goals")
+    .select("title")
+    .eq("user_id", user.id)
+    .eq("for_date", todayDate);
+
+  const alreadyThere = (existingToday ?? []).some(
+    (g) => g.title.trim().toLowerCase() === title.toLowerCase()
+  );
+  if (alreadyThere) return;
+
+  const { error } = await supabase.from("goals").insert({
+    user_id: user.id,
+    title,
+    for_date: todayDate,
+  });
+  logIfError("addGoalFromTemplate", error);
+
+  revalidatePath("/");
+  revalidatePath("/goals");
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- required signature for use as a form action
 export async function copyGoalsToTomorrow(_formData: FormData) {
   const supabase = await createClient();

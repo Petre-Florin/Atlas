@@ -47,6 +47,16 @@ export async function getTomorrowGoals() {
   return getGoalsForDate(tomorrow);
 }
 
+export async function getGoalTemplates() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("goal_templates")
+    .select("id, title")
+    .order("sort_order", { ascending: true });
+  logIfError("getGoalTemplates", error);
+  return data ?? [];
+}
+
 export async function getHabitsWithStreaks() {
   const today = await getTodayForUser();
   const supabase = await createClient();

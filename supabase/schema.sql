@@ -181,3 +181,24 @@ begin
   where id = target_id and user_id = auth.uid();
 end;
 $$ language plpgsql;
+
+-- ============================================================
+-- GOAL TEMPLATES (saved titles for one-click quick-add to
+-- today's goals — set once, reuse anytime). New table.
+-- ============================================================
+create table if not exists goal_templates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists goal_templates_user_idx on goal_templates (user_id);
+
+alter table goal_templates enable row level security;
+
+create policy "Users manage their own goal templates"
+  on goal_templates for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

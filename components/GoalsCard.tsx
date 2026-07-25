@@ -2,15 +2,19 @@ import { addGoal, copyGoalsToTomorrow } from "@/app/actions";
 import { ProgressRing } from "./ProgressRing";
 import { GoalRow } from "./GoalRow";
 import { SubmitButton } from "./SubmitButton";
+import { QuickAddGoals } from "./QuickAddGoals";
 
 type Goal = { id: string; title: string; done: boolean };
+type Template = { id: string; title: string };
 
 export function GoalsCard({
   goals,
   variant = "today",
+  templates = [],
 }: {
   goals: Goal[];
   variant?: "today" | "tomorrow";
+  templates?: Template[];
 }) {
   const doneCount = goals.filter((g) => g.done).length;
   const ratio = goals.length > 0 ? doneCount / goals.length : 0;
@@ -73,6 +77,8 @@ export function GoalsCard({
         />
         <SubmitButton>Add</SubmitButton>
       </form>
+
+      {!isTomorrow && <div className="mt-5"><QuickAddGoals templates={templates} /></div>}
     </div>
   );
 }
