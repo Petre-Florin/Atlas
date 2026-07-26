@@ -10,6 +10,7 @@ const activeStrands = [
   { href: "/habits", label: "Habits", icon: "≋" },
   { href: "/targets", label: "Targets", icon: "▲" },
   { href: "/journal", label: "Journal", icon: "✎" },
+  { href: "/analytics", label: "Analytics", icon: "▤" },
 ];
 
 const futureStrands = [
