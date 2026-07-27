@@ -94,18 +94,18 @@ export async function getTodayJournal() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("wins, mistakes, tomorrow")
+    .select("wins, mistakes, tomorrow, productivity")
     .eq("for_date", today)
     .maybeSingle();
   logIfError("getTodayJournal", error);
-  return data ?? { wins: "", mistakes: "", tomorrow: "" };
+  return data ?? { wins: "", mistakes: "", tomorrow: "", productivity: null };
 }
 
 export async function getRecentJournalEntries(limit = 7) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("journal_entries")
-    .select("for_date, wins, mistakes, tomorrow")
+    .select("for_date, wins, mistakes, tomorrow, productivity")
     .order("for_date", { ascending: false })
     .limit(limit);
   logIfError("getRecentJournalEntries", error);
@@ -244,6 +244,25 @@ export async function getGeneralActivityDates(): Promise<Set<string>> {
   (journalRes.data ?? []).forEach((j) => dates.add(j.for_date));
 
   return dates;
+}
+
+const DASHBOARD_WIDGET_KEYS = ["goals", "habits", "targets", "journal"] as const;
+export type WidgetKey = (typeof DASHBOARD_WIDGET_KEYS)[number];
+
+export async function getDashboardWidgetOrder(): Promise<WidgetKey[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("strands")
+    .select("key, sort_order")
+    .in("key", DASHBOARD_WIDGET_KEYS)
+    .order("sort_order", { ascending: true });
+  logIfError("getDashboardWidgetOrder", error);
+
+  const found = (data ?? []).map((r) => r.key as WidgetKey);
+  // Any widget key missing a strands row (shouldn't happen after the
+  // backfill migration, but safe fallback) just gets appended at the end.
+  const missing = DASHBOARD_WIDGET_KEYS.filter((k) => !found.includes(k));
+  return [...found, ...missing];
 }
 
 const MILESTONE_STREAKS = [7, 14, 30, 60, 100, 150, 200, 365];

@@ -1,5 +1,7 @@
+import { cloneElement, isValidElement } from "react";
 import { TopBar } from "@/components/TopBar";
 import { Widget } from "@/components/Widget";
+import { WidgetSlot } from "@/components/WidgetSlot";
 import { ProgressRing } from "@/components/ProgressRing";
 import { HabitHeatmap } from "@/components/HabitHeatmap";
 import { DailyScoreHero } from "@/components/DailyScoreHero";
@@ -12,8 +14,10 @@ import {
   getRecentActivity,
   getGeneralActivityDates,
   getTargets,
+  getDashboardWidgetOrder,
   computeDailyScore,
   reachedMilestoneToday,
+  type WidgetKey,
 } from "@/lib/strands";
 import { createClient } from "@/lib/supabase/server";
 import { getUserTimezone } from "@/lib/timezone";
@@ -30,15 +34,17 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [goals, habits, journal, activity, generalDates, timeZone, targets] = await Promise.all([
-    getGoals(),
-    getHabitsWithStreaks(),
-    getTodayJournal(),
-    getRecentActivity(),
-    getGeneralActivityDates(),
-    getUserTimezone(),
-    getTargets(),
-  ]);
+  const [goals, habits, journal, activity, generalDates, timeZone, targets, widgetOrder] =
+    await Promise.all([
+      getGoals(),
+      getHabitsWithStreaks(),
+      getTodayJournal(),
+      getRecentActivity(),
+      getGeneralActivityDates(),
+      getUserTimezone(),
+      getTargets(),
+      getDashboardWidgetOrder(),
+    ]);
 
   const doneCount = goals.filter((g) => g.done).length;
   const goalsRatio = goals.length > 0 ? doneCount / goals.length : 0;
@@ -46,6 +52,79 @@ export default async function DashboardPage() {
   const journalStarted = Boolean(journal.wins || journal.mistakes || journal.tomorrow);
   const score = computeDailyScore(goals, habits, journalStarted);
   const milestoneHabit = habits.find(reachedMilestoneToday);
+
+  const widgetContent: Record<WidgetKey, React.ReactNode> = {
+    goals: (
+      <Widget eyebrow="Focus" title="Today's goals" href="/goals">
+        <div className="flex items-center gap-4">
+          <ProgressRing value={goalsRatio} />
+          <div>
+            <p className="text-sm text-paper">
+              {doneCount} of {goals.length || 0} done
+            </p>
+            <p className="mt-0.5 text-xs text-paper-muted">
+              {goals.length === 0 ? "Nothing added yet today" : "Keep going"}
+            </p>
+          </div>
+        </div>
+      </Widget>
+    ),
+    habits: (
+      <Widget eyebrow="Streaks" title="Habits" href="/habits">
+        {habits.length === 0 ? (
+          <p className="text-sm text-paper-muted">No habits tracked yet.</p>
+        ) : (
+          <div>
+            <p className="mb-3 text-sm text-paper">
+              Best streak: <span className="font-data text-thread">{bestStreak}d</span>
+            </p>
+            <ul className="space-y-1.5">
+              {habits.slice(0, 3).map((h) => (
+                <li
+                  key={h.id}
+                  className="flex items-center justify-between text-xs text-paper-muted"
+                >
+                  <span>{h.name}</span>
+                  <span className="font-data">{h.streak}d</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Widget>
+    ),
+    targets: (
+      <Widget eyebrow="Building" title="Targets" href="/targets">
+        {targets.length === 0 ? (
+          <p className="text-sm text-paper-muted">No targets tracked yet.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {targets.slice(0, 3).map((t) => (
+              <li
+                key={t.id}
+                className="flex items-center justify-between text-xs text-paper-muted"
+              >
+                <span className="truncate">{t.title}</span>
+                <span className="font-data flex-none">
+                  {t.current_count}
+                  {t.target_count > 0 ? `/${t.target_count}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Widget>
+    ),
+    journal: (
+      <Widget eyebrow="Today" title="Journal" href="/journal">
+        <p className="text-sm text-paper-muted">
+          {journalStarted
+            ? "Today's entry is in progress."
+            : "You haven't written today's entry yet."}
+        </p>
+      </Widget>
+    ),
+  };
 
   return (
     <>
@@ -58,72 +137,24 @@ export default async function DashboardPage() {
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Widget eyebrow="Focus" title="Today's goals" href="/goals" delay={0}>
-            <div className="flex items-center gap-4">
-              <ProgressRing value={goalsRatio} />
-              <div>
-                <p className="text-sm text-paper">
-                  {doneCount} of {goals.length || 0} done
-                </p>
-                <p className="mt-0.5 text-xs text-paper-muted">
-                  {goals.length === 0 ? "Nothing added yet today" : "Keep going"}
-                </p>
-              </div>
-            </div>
-          </Widget>
-
-          <Widget eyebrow="Streaks" title="Habits" href="/habits" delay={80}>
-            {habits.length === 0 ? (
-              <p className="text-sm text-paper-muted">No habits tracked yet.</p>
-            ) : (
-              <div>
-                <p className="mb-3 text-sm text-paper">
-                  Best streak:{" "}
-                  <span className="font-data text-thread">{bestStreak}d</span>
-                </p>
-                <ul className="space-y-1.5">
-                  {habits.slice(0, 3).map((h) => (
-                    <li
-                      key={h.id}
-                      className="flex items-center justify-between text-xs text-paper-muted"
-                    >
-                      <span>{h.name}</span>
-                      <span className="font-data">{h.streak}d</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Widget>
-
-          <Widget eyebrow="Building" title="Targets" href="/targets" delay={140}>
-            {targets.length === 0 ? (
-              <p className="text-sm text-paper-muted">No targets tracked yet.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {targets.slice(0, 3).map((t) => (
-                  <li
-                    key={t.id}
-                    className="flex items-center justify-between text-xs text-paper-muted"
-                  >
-                    <span className="truncate">{t.title}</span>
-                    <span className="font-data flex-none">
-                      {t.current_count}
-                      {t.target_count > 0 ? `/${t.target_count}` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Widget>
-
-          <Widget eyebrow="Today" title="Journal" href="/journal" delay={200}>
-            <p className="text-sm text-paper-muted">
-              {journalStarted
-                ? "Today's entry is in progress."
-                : "You haven't written today's entry yet."}
-            </p>
-          </Widget>
+          {widgetOrder.map((key, index) => {
+            const content = widgetContent[key];
+            const withDelay = isValidElement(content)
+              ? cloneElement(content as React.ReactElement<{ delay?: number }>, {
+                  delay: index * 60,
+                })
+              : content;
+            return (
+              <WidgetSlot
+                key={key}
+                widgetKey={key}
+                canMoveUp={index > 0}
+                canMoveDown={index < widgetOrder.length - 1}
+              >
+                {withDelay}
+              </WidgetSlot>
+            );
+          })}
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">

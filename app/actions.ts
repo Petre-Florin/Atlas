@@ -459,6 +459,50 @@ export async function moveTarget(formData: FormData) {
   revalidatePath("/targets");
 }
 
+export async function moveDashboardWidget(formData: FormData) {
+  const key = String(formData.get("key"));
+  const direction = String(formData.get("direction")); // "up" | "down"
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: rows, error: listError } = await supabase
+    .from("strands")
+    .select("key, sort_order")
+    .eq("user_id", user.id)
+    .in("key", ["goals", "habits", "targets", "journal"])
+    .order("sort_order", { ascending: true });
+  logIfError("moveDashboardWidget (list)", listError);
+  if (!rows) return;
+
+  const index = rows.findIndex((r) => r.key === key);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= rows.length) return;
+
+  const current = rows[index];
+  const swap = rows[swapIndex];
+
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabase
+      .from("strands")
+      .update({ sort_order: swap.sort_order })
+      .eq("user_id", user.id)
+      .eq("key", current.key),
+    supabase
+      .from("strands")
+      .update({ sort_order: current.sort_order })
+      .eq("user_id", user.id)
+      .eq("key", swap.key),
+  ]);
+  logIfError("moveDashboardWidget (swap 1)", e1);
+  logIfError("moveDashboardWidget (swap 2)", e2);
+
+  revalidatePath("/");
+}
+
 // ---------- Journal ----------
 
 export type JournalSaveState = { ok: boolean; savedAt: number };
@@ -470,6 +514,11 @@ export async function saveJournal(
   const wins = String(formData.get("wins") || "");
   const mistakes = String(formData.get("mistakes") || "");
   const tomorrow = String(formData.get("tomorrow") || "");
+  const productivityRaw = formData.get("productivity");
+  const productivity =
+    productivityRaw !== null && String(productivityRaw).trim() !== ""
+      ? Number(productivityRaw)
+      : null;
 
   const supabase = await createClient();
   const {
@@ -484,6 +533,7 @@ export async function saveJournal(
       wins,
       mistakes,
       tomorrow,
+      productivity,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id,for_date" }

@@ -42,6 +42,11 @@
   border-color: var(--hairline);
 }
 
+.theme-switching,
+.theme-switching * {
+  transition: none !important;
+}
+
 [data-theme="light"] {
   --ink: #f7f5f0;
   --surface: #ffffff;

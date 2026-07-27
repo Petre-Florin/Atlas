@@ -101,14 +101,15 @@ create policy "Users manage their own strands"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- Seed the three v1 strands for a new user automatically.
+-- Seed the strands for a new user automatically.
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.strands (user_id, key, sort_order) values
     (new.id, 'goals', 0),
     (new.id, 'habits', 1),
-    (new.id, 'journal', 2);
+    (new.id, 'targets', 2),
+    (new.id, 'journal', 3);
   return new;
 end;
 $$ language plpgsql security definer;
@@ -202,3 +203,18 @@ create policy "Users manage their own goal templates"
   on goal_templates for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Productivity rating for journal entries — optional 1-10 self-rating,
+-- lower friction than writing on days you don't feel like journaling.
+alter table journal_entries add column if not exists productivity int;
+
+-- Backfill 'targets' into the strands registry for existing accounts
+-- (the original trigger only had goals/habits/journal). Safe to re-run —
+-- the unique(user_id, key) constraint means duplicates are just skipped.
+insert into strands (user_id, key, sort_order)
+select id, 'targets', 2 from auth.users
+on conflict (user_id, key) do nothing;
+
+-- Bump journal to sort_order 3 to make room, only if it's still at its
+-- original seed value (won't touch it if you've already reordered).
+update strands set sort_order = 3 where key = 'journal' and sort_order = 2;

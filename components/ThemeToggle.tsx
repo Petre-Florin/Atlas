@@ -15,9 +15,19 @@ export function ThemeToggle() {
 
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";
+    const root = document.documentElement;
+
+    root.classList.add("theme-switching");
+    root.setAttribute("data-theme", next);
     setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("atlas-theme", next);
+
+    // Force a reflow so the attribute change is applied before we
+    // re-enable transitions, then release them on the next frame.
+    void root.offsetHeight;
+    requestAnimationFrame(() => {
+      root.classList.remove("theme-switching");
+    });
   }
 
   return (

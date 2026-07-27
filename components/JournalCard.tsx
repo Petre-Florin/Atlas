@@ -4,8 +4,14 @@ import { useActionState, useEffect, useState } from "react";
 import { saveJournal, type JournalSaveState } from "@/app/actions";
 import { SubmitButton } from "./SubmitButton";
 
-type Entry = { wins: string; mistakes: string; tomorrow: string };
-type PastEntry = { for_date: string; wins: string; mistakes: string; tomorrow: string };
+type Entry = { wins: string; mistakes: string; tomorrow: string; productivity: number | null };
+type PastEntry = {
+  for_date: string;
+  wins: string;
+  mistakes: string;
+  tomorrow: string;
+  productivity: number | null;
+};
 
 export function JournalCard({
   entry,
@@ -34,6 +40,13 @@ export function JournalCard({
       <div className="animate-fade-in-up rounded-2xl border border-hairline bg-surface p-6">
         <h2 className="mb-5 font-display text-xl text-paper">Today</h2>
         <form action={formAction} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs text-paper-muted">
+              Productivity today (optional)
+            </label>
+            <ProductivityPicker defaultValue={entry.productivity} />
+          </div>
+
           <Field name="wins" label="Today's wins" defaultValue={entry.wins} />
           <Field name="mistakes" label="Today's mistakes" defaultValue={entry.mistakes} />
           <Field name="tomorrow" label="Tomorrow" defaultValue={entry.tomorrow} />
@@ -64,13 +77,20 @@ export function JournalCard({
           <ul className="space-y-5">
             {past.map((e) => (
               <li key={e.for_date} className="border-l border-hairline pl-4">
-                <p className="mb-1.5 font-data text-xs text-paper-muted">
-                  {new Date(e.for_date).toLocaleDateString("en-GB", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  })}
-                </p>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <p className="font-data text-xs text-paper-muted">
+                    {new Date(e.for_date).toLocaleDateString("en-GB", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </p>
+                  {e.productivity !== null && (
+                    <span className="rounded-full border border-hairline px-1.5 py-0.5 font-data text-[10px] text-thread">
+                      {e.productivity}/10
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-1.5">
                   {e.wins && (
                     <p className="text-sm text-paper">
@@ -90,12 +110,42 @@ export function JournalCard({
                       {e.tomorrow}
                     </p>
                   )}
+                  {!e.wins && !e.mistakes && !e.tomorrow && e.productivity !== null && (
+                    <p className="text-xs text-paper-faint">Rating only, no notes.</p>
+                  )}
                 </div>
               </li>
             ))}
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProductivityPicker({ defaultValue }: { defaultValue: number | null }) {
+  const [value, setValue] = useState<number | null>(defaultValue);
+
+  return (
+    <div>
+      <input type="hidden" name="productivity" value={value ?? ""} />
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setValue(value === n ? null : n)}
+            aria-pressed={value === n}
+            className={`flex h-7 w-7 items-center justify-center rounded-md border text-xs font-data transition-colors ${
+              value === n
+                ? "border-thread bg-thread text-ink"
+                : "border-hairline text-paper-muted hover:border-thread hover:text-paper"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
