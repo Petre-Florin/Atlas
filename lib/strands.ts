@@ -246,25 +246,6 @@ export async function getGeneralActivityDates(): Promise<Set<string>> {
   return dates;
 }
 
-const DASHBOARD_WIDGET_KEYS = ["goals", "habits", "targets", "journal"] as const;
-export type WidgetKey = (typeof DASHBOARD_WIDGET_KEYS)[number];
-
-export async function getDashboardWidgetOrder(): Promise<WidgetKey[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("strands")
-    .select("key, sort_order")
-    .in("key", DASHBOARD_WIDGET_KEYS)
-    .order("sort_order", { ascending: true });
-  logIfError("getDashboardWidgetOrder", error);
-
-  const found = (data ?? []).map((r) => r.key as WidgetKey);
-  // Any widget key missing a strands row (shouldn't happen after the
-  // backfill migration, but safe fallback) just gets appended at the end.
-  const missing = DASHBOARD_WIDGET_KEYS.filter((k) => !found.includes(k));
-  return [...found, ...missing];
-}
-
 const MILESTONE_STREAKS = [7, 14, 30, 60, 100, 150, 200, 365];
 
 export function reachedMilestoneToday(habit: { streak: number; loggedToday: boolean }) {

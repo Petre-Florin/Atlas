@@ -459,27 +459,6 @@ export async function moveTarget(formData: FormData) {
   revalidatePath("/targets");
 }
 
-export async function reorderDashboardWidgets(orderedKeys: string[]) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-
-  const results = await Promise.all(
-    orderedKeys.map((key, index) =>
-      supabase
-        .from("strands")
-        .update({ sort_order: index })
-        .eq("user_id", user.id)
-        .eq("key", key)
-    )
-  );
-  results.forEach((r, i) => logIfError(`reorderDashboardWidgets (${orderedKeys[i]})`, r.error));
-
-  revalidatePath("/");
-}
-
 // ---------- Journal ----------
 
 export type JournalSaveState = { ok: boolean; savedAt: number };
