@@ -218,3 +218,50 @@ on conflict (user_id, key) do nothing;
 -- Bump journal to sort_order 3 to make room, only if it's still at its
 -- original seed value (won't touch it if you've already reordered).
 update strands set sort_order = 3 where key = 'journal' and sort_order = 2;
+
+-- ============================================================
+-- OPPORTUNITIES (career/job/networking pipeline tracker)
+-- ============================================================
+create table if not exists opportunities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  type text not null default '',
+  status text not null default 'watching', -- watching | applied | interview | offer | rejected
+  next_action text not null default '',
+  notes text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists opportunities_user_idx on opportunities (user_id);
+
+alter table opportunities enable row level security;
+
+create policy "Users manage their own opportunities"
+  on opportunities for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- ============================================================
+-- CV STORAGE — private bucket, one file per user (folder = user id)
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('documents', 'documents', false)
+on conflict (id) do nothing;
+
+create policy "Users can upload their own documents"
+on storage.objects for insert
+with check (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users can view their own documents"
+on storage.objects for select
+using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users can update their own documents"
+on storage.objects for update
+using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+create policy "Users can delete their own documents"
+on storage.objects for delete
+using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);

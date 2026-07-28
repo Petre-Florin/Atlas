@@ -204,6 +204,16 @@ export async function getArchivedHabits() {
   return data ?? [];
 }
 
+export async function getOpportunities() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select("id, name, type, status, next_action, notes")
+    .order("created_at", { ascending: true });
+  logIfError("getOpportunities", error);
+  return data ?? [];
+}
+
 export async function getTargets() {
   const supabase = await createClient();
   const { data, error } = await supabase

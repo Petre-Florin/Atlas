@@ -11,12 +11,12 @@ const activeStrands = [
   { href: "/targets", label: "Targets", icon: "▲" },
   { href: "/journal", label: "Journal", icon: "✎" },
   { href: "/analytics", label: "Analytics", icon: "▤" },
+  { href: "/opportunities", label: "Opportunities", icon: "◇" },
 ];
 
 const futureStrands = [
   { label: "Learning" },
   { label: "Projects" },
-  { label: "Career" },
   { label: "Finance" },
   { label: "Knowledge" },
 ];

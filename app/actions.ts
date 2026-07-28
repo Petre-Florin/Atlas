@@ -459,6 +459,112 @@ export async function moveTarget(formData: FormData) {
   revalidatePath("/targets");
 }
 
+// ---------- Opportunities ----------
+
+export async function addOpportunity(formData: FormData) {
+  const name = String(formData.get("name") || "").trim();
+  const type = String(formData.get("type") || "").trim();
+  if (!name) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase.from("opportunities").insert({
+    user_id: user.id,
+    name,
+    type,
+    status: "watching",
+  });
+  logIfError("addOpportunity", error);
+
+  revalidatePath("/opportunities");
+}
+
+export async function updateOpportunityStatus(formData: FormData) {
+  const id = String(formData.get("id"));
+  const status = String(formData.get("status"));
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("opportunities")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  logIfError("updateOpportunityStatus", error);
+
+  revalidatePath("/opportunities");
+}
+
+export async function editOpportunity(formData: FormData) {
+  const id = String(formData.get("id"));
+  const name = String(formData.get("name") || "").trim();
+  const type = String(formData.get("type") || "").trim();
+  const nextAction = String(formData.get("nextAction") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  if (!name) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("opportunities")
+    .update({
+      name,
+      type,
+      next_action: nextAction,
+      notes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  logIfError("editOpportunity", error);
+
+  revalidatePath("/opportunities");
+}
+
+export async function deleteOpportunity(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("opportunities").delete().eq("id", id);
+  logIfError("deleteOpportunity", error);
+
+  revalidatePath("/opportunities");
+}
+
+// ---------- CV storage ----------
+
+export async function uploadCV(formData: FormData) {
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Clear out any existing CV file(s) first, since a replacement might
+  // have a different extension than what's currently stored.
+  const { data: existing } = await supabase.storage.from("documents").list(user.id);
+  const toRemove = (existing ?? [])
+    .filter((f) => f.name.startsWith("cv."))
+    .map((f) => `${user.id}/${f.name}`);
+  if (toRemove.length > 0) {
+    const { error: removeError } = await supabase.storage.from("documents").remove(toRemove);
+    logIfError("uploadCV (remove old)", removeError);
+  }
+
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${user.id}/cv.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("documents")
+    .upload(path, file, { upsert: true });
+  logIfError("uploadCV", error);
+
+  revalidatePath("/opportunities");
+}
+
 // ---------- Journal ----------
 
 export type JournalSaveState = { ok: boolean; savedAt: number };

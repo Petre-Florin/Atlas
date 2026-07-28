@@ -1,0 +1,147 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { updateOpportunityStatus, editOpportunity, deleteOpportunity } from "@/app/actions";
+
+type Opportunity = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  next_action: string;
+  notes: string;
+};
+
+const STATUSES = ["watching", "applied", "interview", "offer", "rejected"] as const;
+const STATUS_LABELS: Record<string, string> = {
+  watching: "Watching",
+  applied: "Applied",
+  interview: "Interview",
+  offer: "Offer",
+  rejected: "Rejected",
+};
+
+export function OpportunityRow({ opp }: { opp: Opportunity }) {
+  const [editing, setEditing] = useState(false);
+  const [status, setStatus] = useState(opp.status);
+  const [, startTransition] = useTransition();
+
+  function handleStatusChange(newStatus: string) {
+    setStatus(newStatus); // instant visual feedback
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("id", opp.id);
+      fd.set("status", newStatus);
+      await updateOpportunityStatus(fd);
+    });
+  }
+
+  if (editing) {
+    return (
+      <form
+        action={async (formData) => {
+          await editOpportunity(formData);
+          setEditing(false);
+        }}
+        className="space-y-2 rounded-md border border-thread p-3"
+      >
+        <input type="hidden" name="id" value={opp.id} />
+        <input
+          type="text"
+          name="name"
+          defaultValue={opp.name}
+          placeholder="Name"
+          autoFocus
+          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <input
+          type="text"
+          name="type"
+          defaultValue={opp.type}
+          placeholder="Type (e.g. Job, Hackathon, Networking)"
+          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <input
+          type="text"
+          name="nextAction"
+          defaultValue={opp.next_action}
+          placeholder="Next action"
+          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <textarea
+          name="notes"
+          defaultValue={opp.notes}
+          placeholder="Notes"
+          rows={2}
+          className="w-full resize-none rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+          >
+            Save
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="rounded-md px-2 py-1 text-xs text-paper-faint transition-colors hover:text-paper-muted"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-hairline p-3">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm text-paper">{opp.name}</span>
+            {opp.type && (
+              <span className="flex-none rounded-full border border-hairline px-1.5 py-0.5 text-[10px] text-paper-faint">
+                {opp.type}
+              </span>
+            )}
+          </div>
+          {opp.next_action && (
+            <p className="mt-1 text-xs text-paper-muted">Next: {opp.next_action}</p>
+          )}
+        </div>
+        <div className="flex flex-none items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            aria-label="Edit opportunity"
+          >
+            Edit
+          </button>
+          <form action={deleteOpportunity}>
+            <input type="hidden" name="id" value={opp.id} />
+            <button
+              type="submit"
+              className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+              aria-label="Remove opportunity"
+            >
+              Remove
+            </button>
+          </form>
+        </div>
+      </div>
+      <select
+        value={status}
+        onChange={(e) => handleStatusChange(e.target.value)}
+        className="rounded-md border border-hairline bg-ink px-2 py-1 text-xs text-paper outline-none focus:border-thread"
+      >
+        {STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {STATUS_LABELS[s]}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
