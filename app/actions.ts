@@ -459,46 +459,23 @@ export async function moveTarget(formData: FormData) {
   revalidatePath("/targets");
 }
 
-export async function moveDashboardWidget(formData: FormData) {
-  const key = String(formData.get("key"));
-  const direction = String(formData.get("direction")); // "up" | "down"
-
+export async function reorderDashboardWidgets(orderedKeys: string[]) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { data: rows, error: listError } = await supabase
-    .from("strands")
-    .select("key, sort_order")
-    .eq("user_id", user.id)
-    .in("key", ["goals", "habits", "targets", "journal"])
-    .order("sort_order", { ascending: true });
-  logIfError("moveDashboardWidget (list)", listError);
-  if (!rows) return;
-
-  const index = rows.findIndex((r) => r.key === key);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || swapIndex < 0 || swapIndex >= rows.length) return;
-
-  const current = rows[index];
-  const swap = rows[swapIndex];
-
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    supabase
-      .from("strands")
-      .update({ sort_order: swap.sort_order })
-      .eq("user_id", user.id)
-      .eq("key", current.key),
-    supabase
-      .from("strands")
-      .update({ sort_order: current.sort_order })
-      .eq("user_id", user.id)
-      .eq("key", swap.key),
-  ]);
-  logIfError("moveDashboardWidget (swap 1)", e1);
-  logIfError("moveDashboardWidget (swap 2)", e2);
+  const results = await Promise.all(
+    orderedKeys.map((key, index) =>
+      supabase
+        .from("strands")
+        .update({ sort_order: index })
+        .eq("user_id", user.id)
+        .eq("key", key)
+    )
+  );
+  results.forEach((r, i) => logIfError(`reorderDashboardWidgets (${orderedKeys[i]})`, r.error));
 
   revalidatePath("/");
 }

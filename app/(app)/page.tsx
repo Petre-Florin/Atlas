@@ -1,7 +1,6 @@
-import { cloneElement, isValidElement } from "react";
 import { TopBar } from "@/components/TopBar";
 import { Widget } from "@/components/Widget";
-import { WidgetSlot } from "@/components/WidgetSlot";
+import { DashboardWidgetGrid } from "@/components/DashboardWidgetGrid";
 import { ProgressRing } from "@/components/ProgressRing";
 import { HabitHeatmap } from "@/components/HabitHeatmap";
 import { DailyScoreHero } from "@/components/DailyScoreHero";
@@ -55,7 +54,7 @@ export default async function DashboardPage() {
 
   const widgetContent: Record<WidgetKey, React.ReactNode> = {
     goals: (
-      <Widget eyebrow="Focus" title="Today's goals" href="/goals">
+      <Widget eyebrow="Focus" title="Today's goals" href="/goals" delay={0}>
         <div className="flex items-center gap-4">
           <ProgressRing value={goalsRatio} />
           <div>
@@ -70,7 +69,7 @@ export default async function DashboardPage() {
       </Widget>
     ),
     habits: (
-      <Widget eyebrow="Streaks" title="Habits" href="/habits">
+      <Widget eyebrow="Streaks" title="Habits" href="/habits" delay={80}>
         {habits.length === 0 ? (
           <p className="text-sm text-paper-muted">No habits tracked yet.</p>
         ) : (
@@ -94,7 +93,7 @@ export default async function DashboardPage() {
       </Widget>
     ),
     targets: (
-      <Widget eyebrow="Building" title="Targets" href="/targets">
+      <Widget eyebrow="Building" title="Targets" href="/targets" delay={140}>
         {targets.length === 0 ? (
           <p className="text-sm text-paper-muted">No targets tracked yet.</p>
         ) : (
@@ -116,7 +115,7 @@ export default async function DashboardPage() {
       </Widget>
     ),
     journal: (
-      <Widget eyebrow="Today" title="Journal" href="/journal">
+      <Widget eyebrow="Today" title="Journal" href="/journal" delay={200}>
         <p className="text-sm text-paper-muted">
           {journalStarted
             ? "Today's entry is in progress."
@@ -136,26 +135,7 @@ export default async function DashboardPage() {
           <MilestoneBanner habitName={milestoneHabit.name} streak={milestoneHabit.streak} />
         )}
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {widgetOrder.map((key, index) => {
-            const content = widgetContent[key];
-            const withDelay = isValidElement(content)
-              ? cloneElement(content as React.ReactElement<{ delay?: number }>, {
-                  delay: index * 60,
-                })
-              : content;
-            return (
-              <WidgetSlot
-                key={key}
-                widgetKey={key}
-                canMoveUp={index > 0}
-                canMoveDown={index < widgetOrder.length - 1}
-              >
-                {withDelay}
-              </WidgetSlot>
-            );
-          })}
-        </div>
+        <DashboardWidgetGrid initialOrder={widgetOrder} widgets={widgetContent} />
 
         <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div
