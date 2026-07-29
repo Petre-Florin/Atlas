@@ -1,5 +1,6 @@
 import { addOpportunity } from "@/app/actions";
 import { OpportunityRow } from "./OpportunityRow";
+import { TypeSelect } from "./TypeSelect";
 import { SubmitButton } from "./SubmitButton";
 
 type Opportunity = {
@@ -9,7 +10,13 @@ type Opportunity = {
   status: string;
   next_action: string;
   notes: string;
+  link: string;
+  contact: string;
+  location: string;
+  deadline: string | null;
 };
+
+type CVInfo = { name: string; url: string | null };
 
 const STATUS_ORDER = ["watching", "applied", "interview", "offer", "rejected"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -20,7 +27,13 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
-export function OpportunitiesBoard({ opportunities }: { opportunities: Opportunity[] }) {
+export function OpportunitiesBoard({
+  opportunities,
+  cvsByOpportunity,
+}: {
+  opportunities: Opportunity[];
+  cvsByOpportunity: Record<string, CVInfo>;
+}) {
   return (
     <div
       className="animate-fade-in-up rounded-2xl border border-hairline bg-surface p-6"
@@ -35,15 +48,8 @@ export function OpportunitiesBoard({ opportunities }: { opportunities: Opportuni
           placeholder="Name (e.g. OpenAI, a hackathon, a contact)"
           className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
         />
-        <div className="flex gap-2">
-          <input
-            type="text"
-            name="type"
-            placeholder="Type (optional)"
-            className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
-          />
-          <SubmitButton>Add</SubmitButton>
-        </div>
+        <TypeSelect />
+        <SubmitButton>Add</SubmitButton>
       </form>
 
       {opportunities.length === 0 ? (
@@ -62,7 +68,7 @@ export function OpportunitiesBoard({ opportunities }: { opportunities: Opportuni
                 </h3>
                 <div className="space-y-2">
                   {group.map((o) => (
-                    <OpportunityRow key={o.id} opp={o} />
+                    <OpportunityRow key={o.id} opp={o} cv={cvsByOpportunity[o.id] ?? null} />
                   ))}
                 </div>
               </div>

@@ -208,7 +208,7 @@ export async function getOpportunities() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("opportunities")
-    .select("id, name, type, status, next_action, notes")
+    .select("id, name, type, status, next_action, notes, link, contact, location, deadline")
     .order("created_at", { ascending: true });
   logIfError("getOpportunities", error);
   return data ?? [];

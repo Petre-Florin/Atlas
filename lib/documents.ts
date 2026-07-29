@@ -32,3 +32,43 @@ export async function getCurrentCV(): Promise<CVInfo | null> {
     url: signed?.signedUrl ?? null,
   };
 }
+
+export async function getOpportunityCVs(): Promise<Record<string, CVInfo>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data: files, error } = await supabase.storage
+    .from("documents")
+    .list(`${user.id}/opportunities`);
+  if (error) {
+    console.error("getOpportunityCVs (list) failed:", error.message);
+    return {};
+  }
+
+  const result: Record<string, CVInfo> = {};
+
+  await Promise.all(
+    (files ?? []).map(async (f) => {
+      const match = f.name.match(/^(.+)-cv\.[^.]+$/);
+      if (!match) return;
+      const opportunityId = match[1];
+      const path = `${user.id}/opportunities/${f.name}`;
+      const { data: signed, error: signError } = await supabase.storage
+        .from("documents")
+        .createSignedUrl(path, 300);
+      if (signError) {
+        console.error("getOpportunityCVs (sign) failed:", signError.message);
+      }
+      result[opportunityId] = {
+        name: f.name,
+        updatedAt: f.updated_at ?? f.created_at ?? new Date().toISOString(),
+        url: signed?.signedUrl ?? null,
+      };
+    })
+  );
+
+  return result;
+}

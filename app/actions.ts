@@ -503,6 +503,10 @@ export async function editOpportunity(formData: FormData) {
   const type = String(formData.get("type") || "").trim();
   const nextAction = String(formData.get("nextAction") || "").trim();
   const notes = String(formData.get("notes") || "").trim();
+  const link = String(formData.get("link") || "").trim();
+  const contact = String(formData.get("contact") || "").trim();
+  const location = String(formData.get("location") || "").trim();
+  const deadlineRaw = String(formData.get("deadline") || "").trim();
   if (!name) return;
 
   const supabase = await createClient();
@@ -513,6 +517,10 @@ export async function editOpportunity(formData: FormData) {
       type,
       next_action: nextAction,
       notes,
+      link,
+      contact,
+      location,
+      deadline: deadlineRaw || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
@@ -561,6 +569,64 @@ export async function uploadCV(formData: FormData) {
     .from("documents")
     .upload(path, file, { upsert: true });
   logIfError("uploadCV", error);
+
+  revalidatePath("/opportunities");
+}
+
+export async function uploadOpportunityCV(formData: FormData) {
+  const id = String(formData.get("id"));
+  const file = formData.get("file") as File | null;
+  if (!id || !file || file.size === 0) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Clear any existing file for this opportunity first — a replacement
+  // might have a different extension than what's currently stored.
+  const { data: existing } = await supabase.storage
+    .from("documents")
+    .list(`${user.id}/opportunities`);
+  const toRemove = (existing ?? [])
+    .filter((f) => f.name.startsWith(`${id}-cv.`))
+    .map((f) => `${user.id}/opportunities/${f.name}`);
+  if (toRemove.length > 0) {
+    const { error: removeError } = await supabase.storage.from("documents").remove(toRemove);
+    logIfError("uploadOpportunityCV (remove old)", removeError);
+  }
+
+  const ext = file.name.split(".").pop() || "pdf";
+  const path = `${user.id}/opportunities/${id}-cv.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("documents")
+    .upload(path, file, { upsert: true });
+  logIfError("uploadOpportunityCV", error);
+
+  revalidatePath("/opportunities");
+}
+
+export async function deleteOpportunityCV(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase.storage
+    .from("documents")
+    .list(`${user.id}/opportunities`);
+  const toRemove = (existing ?? [])
+    .filter((f) => f.name.startsWith(`${id}-cv.`))
+    .map((f) => `${user.id}/opportunities/${f.name}`);
+  if (toRemove.length > 0) {
+    const { error } = await supabase.storage.from("documents").remove(toRemove);
+    logIfError("deleteOpportunityCV", error);
+  }
 
   revalidatePath("/opportunities");
 }

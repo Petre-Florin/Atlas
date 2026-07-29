@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateOpportunityStatus, editOpportunity, deleteOpportunity } from "@/app/actions";
+import {
+  updateOpportunityStatus,
+  editOpportunity,
+  deleteOpportunity,
+  uploadOpportunityCV,
+  deleteOpportunityCV,
+} from "@/app/actions";
+import { TypeSelect } from "./TypeSelect";
+import { SubmitButton } from "./SubmitButton";
 
 type Opportunity = {
   id: string;
@@ -10,7 +18,13 @@ type Opportunity = {
   status: string;
   next_action: string;
   notes: string;
+  link: string;
+  contact: string;
+  location: string;
+  deadline: string | null;
 };
+
+type CVInfo = { name: string; url: string | null };
 
 const STATUSES = ["watching", "applied", "interview", "offer", "rejected"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -21,7 +35,61 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
-export function OpportunityRow({ opp }: { opp: Opportunity }) {
+function DeadlineBadge({ date }: { date: string }) {
+  const d = new Date(date);
+  // eslint-disable-next-line react-hooks/purity -- display-only comparison, no correctness/hydration stakes worth threading a server date through three layers for
+  const isPast = d.getTime() < Date.now() - 86400000;
+  const label = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return (
+    <span
+      className={`flex-none rounded-full border px-1.5 py-0.5 text-[10px] ${
+        isPast ? "border-rust text-rust" : "border-hairline text-paper-faint"
+      }`}
+    >
+      Due {label}
+    </span>
+  );
+}
+
+function CVAttachment({ opportunityId, cv }: { opportunityId: string; cv: CVInfo | null }) {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {cv ? (
+        <>
+          <span className="truncate text-xs text-paper-muted">{cv.name}</span>
+          {cv.url && (
+            <a href={cv.url} download className="text-xs text-thread hover:underline">
+              Download
+            </a>
+          )}
+          <form action={deleteOpportunityCV}>
+            <input type="hidden" name="id" value={opportunityId} />
+            <button
+              type="submit"
+              className="text-xs text-paper-faint transition-colors hover:text-rust"
+            >
+              Remove CV
+            </button>
+          </form>
+        </>
+      ) : (
+        <form action={uploadOpportunityCV} className="flex flex-wrap items-center gap-2">
+          <input type="hidden" name="id" value={opportunityId} />
+          <input
+            type="file"
+            name="file"
+            accept=".pdf,.doc,.docx"
+            required
+            className="text-xs text-paper-faint file:mr-2 file:rounded file:border-0 file:bg-surface-raised file:px-2 file:py-0.5 file:text-xs file:text-paper"
+          />
+          <SubmitButton>Attach CV</SubmitButton>
+        </form>
+      )}
+    </div>
+  );
+}
+
+export function OpportunityRow({ opp, cv }: { opp: Opportunity; cv: CVInfo | null }) {
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(opp.status);
   const [, startTransition] = useTransition();
@@ -54,18 +122,41 @@ export function OpportunityRow({ opp }: { opp: Opportunity }) {
           autoFocus
           className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
         />
-        <input
-          type="text"
-          name="type"
-          defaultValue={opp.type}
-          placeholder="Type (e.g. Job, Hackathon, Networking)"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
-        />
+        <TypeSelect defaultValue={opp.type} />
         <input
           type="text"
           name="nextAction"
           defaultValue={opp.next_action}
           placeholder="Next action"
+          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name="location"
+            defaultValue={opp.location}
+            placeholder="Location (e.g. Remote, London)"
+            className="flex-1 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          />
+          <input
+            type="date"
+            name="deadline"
+            defaultValue={opp.deadline ?? ""}
+            className="rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          />
+        </div>
+        <input
+          type="url"
+          name="link"
+          defaultValue={opp.link}
+          placeholder="Link (job posting URL)"
+          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+        />
+        <input
+          type="text"
+          name="contact"
+          defaultValue={opp.contact}
+          placeholder="Contact (name, email)"
           className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
         />
         <textarea
@@ -105,9 +196,24 @@ export function OpportunityRow({ opp }: { opp: Opportunity }) {
                 {opp.type}
               </span>
             )}
+            {opp.deadline && <DeadlineBadge date={opp.deadline} />}
+            {opp.link && (
+              <a
+                href={opp.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-thread hover:underline"
+              >
+                Link ↗
+              </a>
+            )}
           </div>
-          {opp.next_action && (
-            <p className="mt-1 text-xs text-paper-muted">Next: {opp.next_action}</p>
+          {(opp.next_action || opp.location) && (
+            <p className="mt-1 text-xs text-paper-muted">
+              {opp.next_action && <>Next: {opp.next_action}</>}
+              {opp.next_action && opp.location && " · "}
+              {opp.location}
+            </p>
           )}
         </div>
         <div className="flex flex-none items-center gap-1">
@@ -142,6 +248,7 @@ export function OpportunityRow({ opp }: { opp: Opportunity }) {
           </option>
         ))}
       </select>
+      <CVAttachment opportunityId={opp.id} cv={cv} />
     </div>
   );
 }

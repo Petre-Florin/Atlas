@@ -265,3 +265,9 @@ using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))
 create policy "Users can delete their own documents"
 on storage.objects for delete
 using (bucket_id = 'documents' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Richer opportunity fields — link, contact, location, deadline
+alter table opportunities add column if not exists link text not null default '';
+alter table opportunities add column if not exists contact text not null default '';
+alter table opportunities add column if not exists location text not null default '';
+alter table opportunities add column if not exists deadline date;

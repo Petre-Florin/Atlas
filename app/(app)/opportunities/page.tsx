@@ -2,10 +2,14 @@ import { TopBar } from "@/components/TopBar";
 import { OpportunitiesBoard } from "@/components/OpportunitiesBoard";
 import { CVCard } from "@/components/CVCard";
 import { getOpportunities } from "@/lib/strands";
-import { getCurrentCV } from "@/lib/documents";
+import { getCurrentCV, getOpportunityCVs } from "@/lib/documents";
 
 export default async function OpportunitiesPage() {
-  const [opportunities, cv] = await Promise.all([getOpportunities(), getCurrentCV()]);
+  const [opportunities, cv, opportunityCVs] = await Promise.all([
+    getOpportunities(),
+    getCurrentCV(),
+    getOpportunityCVs(),
+  ]);
 
   return (
     <>
@@ -13,7 +17,7 @@ export default async function OpportunitiesPage() {
       <main className="flex-1 px-8 py-8">
         <div className="mx-auto max-w-xl space-y-5">
           <CVCard cv={cv} />
-          <OpportunitiesBoard opportunities={opportunities} />
+          <OpportunitiesBoard opportunities={opportunities} cvsByOpportunity={opportunityCVs} />
         </div>
       </main>
     </>
