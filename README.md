@@ -11,6 +11,7 @@ Three strands:
 - **Goals** — a daily checklist that resets each day
 - **Habits** — habits you define yourself, with streak counters
 - **Journal** — three daily prompts: wins, mistakes, tomorrow
+- **Opportunities** — a checklist of what's currently available and details on it.
 
 Everything else from the original brief (career tracking, GitHub integration,
 finance dashboard, knowledge graph, AI mentor, analytics) is deliberately
