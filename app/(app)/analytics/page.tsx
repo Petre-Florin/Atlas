@@ -40,7 +40,7 @@ export default async function AnalyticsPage() {
                     <div className="mb-1 flex items-center justify-between text-sm">
                       <span className="text-paper">{h.name}</span>
                       <span className="font-data text-xs text-paper-muted">
-                        {Math.round(h.ratio * 100)}% ({h.loggedCount}/{h.windowDays}d)
+                        {Math.round(h.ratio * 100)}% ({h.loggedCount}/{h.expected})
                       </span>
                     </div>
                     <ProgressBar value={h.ratio} />

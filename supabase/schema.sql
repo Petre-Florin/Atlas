@@ -271,3 +271,12 @@ alter table opportunities add column if not exists link text not null default ''
 alter table opportunities add column if not exists contact text not null default '';
 alter table opportunities add column if not exists location text not null default '';
 alter table opportunities add column if not exists deadline date;
+
+-- Habit frequency beyond daily. Existing habits default to 'daily',
+-- so nothing changes for anything already tracked.
+alter table habits add column if not exists frequency_type text not null default 'daily';
+-- frequency_type: 'daily' | 'weekly_days' | 'weekly_count'
+alter table habits add column if not exists frequency_days int[] not null default '{}';
+-- frequency_days: weekday numbers due, 0=Sun..6=Sat (only used for 'weekly_days')
+alter table habits add column if not exists frequency_count int;
+-- frequency_count: target logs per week (only used for 'weekly_count')

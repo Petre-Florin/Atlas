@@ -37,6 +37,96 @@ export function computeStreak(dates: string[], today: string): number {
   return streak;
 }
 
+export type HabitFrequency = {
+  type: "daily" | "weekly_days" | "weekly_count";
+  days: number[]; // weekday numbers due, 0=Sun..6=Sat — only for weekly_days
+  count: number | null; // target logs per week — only for weekly_count
+};
+
+function computeWeeklyDaysStreak(dates: string[], today: string, dueDays: number[]): number {
+  if (dueDays.length === 0) return 0;
+  const set = new Set(dates);
+  const cursor = new Date(today);
+  const todayWeekday = cursor.getUTCDay();
+
+  if (!dueDays.includes(todayWeekday) || !set.has(today)) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let streak = 0;
+  let guard = 0;
+  while (guard < 3660) {
+    const weekday = cursor.getUTCDay();
+    if (dueDays.includes(weekday)) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      if (set.has(dateStr)) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      } else {
+        break;
+      }
+    } else {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    guard += 1;
+  }
+  return streak;
+}
+
+function startOfWeek(dateStr: string): string {
+  const d = new Date(dateStr);
+  const day = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day; // shift to Monday
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+function shiftWeek(weekStart: string, weeks: number): string {
+  const d = new Date(weekStart);
+  d.setUTCDate(d.getUTCDate() + weeks * 7);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeWeeklyCountStreak(dates: string[], today: string, target: number): number {
+  if (!target || target <= 0) return 0;
+
+  const counts = new Map<string, number>();
+  for (const d of dates) {
+    const wk = startOfWeek(d);
+    counts.set(wk, (counts.get(wk) ?? 0) + 1);
+  }
+
+  let cursorWeek = startOfWeek(today);
+  const currentWeekMet = (counts.get(cursorWeek) ?? 0) >= target;
+
+  // An in-progress week that hasn't hit target yet doesn't break the streak —
+  // only fully-elapsed past weeks count as broken.
+  if (!currentWeekMet) {
+    cursorWeek = shiftWeek(cursorWeek, -1);
+  }
+
+  let streak = 0;
+  let guard = 0;
+  while (guard < 520) {
+    const count = counts.get(cursorWeek) ?? 0;
+    if (count >= target) {
+      streak += 1;
+      cursorWeek = shiftWeek(cursorWeek, -1);
+    } else {
+      break;
+    }
+    guard += 1;
+  }
+  return streak;
+}
+
+function isDueToday(freq: HabitFrequency, today: string): boolean {
+  if (freq.type === "weekly_days") {
+    return freq.days.includes(new Date(today).getUTCDay());
+  }
+  return true; // daily and weekly_count have no fixed "due" restriction
+}
+
 export async function getGoals() {
   const today = await getTodayForUser();
   return getGoalsForDate(today);
@@ -63,7 +153,7 @@ export async function getHabitsWithStreaks() {
   const [habitsRes, logsRes] = await Promise.all([
     supabase
       .from("habits")
-      .select("id, name")
+      .select("id, name, frequency_type, frequency_days, frequency_count")
       .eq("archived", false)
       .order("sort_order", { ascending: true }),
     supabase
@@ -76,15 +166,47 @@ export async function getHabitsWithStreaks() {
 
   const habitsRaw = habitsRes.data ?? [];
   const logs = logsRes.data ?? [];
+  const currentWeek = startOfWeek(today);
 
   return habitsRaw.map((h) => {
     const habitDates = logs.filter((l) => l.habit_id === h.id).map((l) => l.for_date);
+    const freq: HabitFrequency = {
+      type: (h.frequency_type as HabitFrequency["type"]) || "daily",
+      days: h.frequency_days ?? [],
+      count: h.frequency_count,
+    };
+
+    let streak: number;
+    let streakUnit: "days" | "weeks";
+    if (freq.type === "weekly_days") {
+      streak = computeWeeklyDaysStreak(habitDates, today, freq.days);
+      streakUnit = "days";
+    } else if (freq.type === "weekly_count") {
+      streak = computeWeeklyCountStreak(habitDates, today, freq.count ?? 0);
+      streakUnit = "weeks";
+    } else {
+      streak = computeStreak(habitDates, today);
+      streakUnit = "days";
+    }
+
+    const weekProgress =
+      freq.type === "weekly_count"
+        ? {
+            count: habitDates.filter((d) => startOfWeek(d) === currentWeek).length,
+            target: freq.count ?? 0,
+          }
+        : undefined;
+
     return {
       id: h.id,
       name: h.name,
-      streak: computeStreak(habitDates, today),
+      streak,
+      streakUnit,
       loggedToday: habitDates.includes(today),
       loggedDates: new Set(habitDates),
+      frequency: freq,
+      dueToday: isDueToday(freq, today),
+      weekProgress,
     };
   });
 }
@@ -257,9 +379,16 @@ export async function getGeneralActivityDates(): Promise<Set<string>> {
 }
 
 const MILESTONE_STREAKS = [7, 14, 30, 60, 100, 150, 200, 365];
+const MILESTONE_WEEKS = [4, 8, 12, 26, 52, 104];
 
-export function reachedMilestoneToday(habit: { streak: number; loggedToday: boolean }) {
-  return habit.loggedToday && MILESTONE_STREAKS.includes(habit.streak);
+export function reachedMilestoneToday(habit: {
+  streak: number;
+  loggedToday: boolean;
+  streakUnit?: "days" | "weeks";
+}) {
+  if (!habit.loggedToday) return false;
+  const list = habit.streakUnit === "weeks" ? MILESTONE_WEEKS : MILESTONE_STREAKS;
+  return list.includes(habit.streak);
 }
 
 // ============================================================
@@ -328,12 +457,31 @@ export async function getScoreHistory(days = 30): Promise<DayScore[]> {
   });
 }
 
+function expectedOccurrencesInWindow(
+  freq: HabitFrequency,
+  windowDays: number,
+  today: string
+): number {
+  if (freq.type === "daily") return windowDays;
+  if (freq.type === "weekly_count") return (windowDays / 7) * (freq.count ?? 0);
+
+  if (freq.days.length === 0) return windowDays; // fallback safety
+  let count = 0;
+  const cursor = new Date(today);
+  for (let i = 0; i < windowDays; i++) {
+    if (freq.days.includes(cursor.getUTCDay())) count += 1;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return count;
+}
+
 export type HabitConsistency = {
   id: string;
   name: string;
   ratio: number;
   loggedCount: number;
   windowDays: number;
+  expected: number;
 };
 
 export async function getHabitConsistency(days = 30): Promise<HabitConsistency[]> {
@@ -342,7 +490,10 @@ export async function getHabitConsistency(days = 30): Promise<HabitConsistency[]
 
   const supabase = await createClient();
   const [habitsRes, logsRes] = await Promise.all([
-    supabase.from("habits").select("id, name, created_at").eq("archived", false),
+    supabase
+      .from("habits")
+      .select("id, name, created_at, frequency_type, frequency_days, frequency_count")
+      .eq("archived", false),
     supabase.from("habit_logs").select("habit_id, for_date").gte("for_date", startDate),
   ]);
   logIfError("getHabitConsistency (habits)", habitsRes.error);
@@ -358,12 +509,19 @@ export async function getHabitConsistency(days = 30): Promise<HabitConsistency[]
         Math.floor((todayMs - new Date(createdDate).getTime()) / 86400000) + 1;
       const windowDays = Math.min(days, Math.max(1, daysSinceCreated));
       const loggedCount = logs.filter((l) => l.habit_id === h.id).length;
+      const freq: HabitFrequency = {
+        type: (h.frequency_type as HabitFrequency["type"]) || "daily",
+        days: h.frequency_days ?? [],
+        count: h.frequency_count,
+      };
+      const expected = Math.max(1, expectedOccurrencesInWindow(freq, windowDays, today));
       return {
         id: h.id,
         name: h.name,
-        ratio: loggedCount / windowDays,
+        ratio: Math.min(1, loggedCount / expected),
         loggedCount,
         windowDays,
+        expected: Math.round(expected),
       };
     })
     .sort((a, b) => b.ratio - a.ratio);

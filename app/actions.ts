@@ -197,9 +197,21 @@ export async function copyGoalsToTomorrow(_formData: FormData) {
 
 // ---------- Habits ----------
 
+function parseFrequency(formData: FormData) {
+  const frequencyType = String(formData.get("frequencyType") || "daily");
+  const frequencyDays = formData
+    .getAll("frequencyDays")
+    .map((d) => Number(d))
+    .filter((n) => !Number.isNaN(n));
+  const frequencyCountRaw = formData.get("frequencyCount");
+  const frequencyCount = frequencyCountRaw ? Math.max(1, Number(frequencyCountRaw)) : null;
+  return { frequencyType, frequencyDays, frequencyCount };
+}
+
 export async function addHabit(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   if (!name) return;
+  const { frequencyType, frequencyDays, frequencyCount } = parseFrequency(formData);
 
   const supabase = await createClient();
   const {
@@ -215,9 +227,14 @@ export async function addHabit(formData: FormData) {
     .limit(1);
   const nextOrder = (existing?.[0]?.sort_order ?? 0) + 1;
 
-  const { error } = await supabase
-    .from("habits")
-    .insert({ user_id: user.id, name, sort_order: nextOrder });
+  const { error } = await supabase.from("habits").insert({
+    user_id: user.id,
+    name,
+    sort_order: nextOrder,
+    frequency_type: frequencyType,
+    frequency_days: frequencyDays,
+    frequency_count: frequencyCount,
+  });
   logIfError("addHabit", error);
 
   revalidatePath("/");
@@ -254,14 +271,23 @@ export async function toggleHabitToday(formData: FormData) {
   revalidatePath("/habits");
 }
 
-export async function renameHabit(formData: FormData) {
+export async function editHabit(formData: FormData) {
   const id = String(formData.get("id"));
   const name = String(formData.get("name") || "").trim();
   if (!name) return;
+  const { frequencyType, frequencyDays, frequencyCount } = parseFrequency(formData);
 
   const supabase = await createClient();
-  const { error } = await supabase.from("habits").update({ name }).eq("id", id);
-  logIfError("renameHabit", error);
+  const { error } = await supabase
+    .from("habits")
+    .update({
+      name,
+      frequency_type: frequencyType,
+      frequency_days: frequencyDays,
+      frequency_count: frequencyCount,
+    })
+    .eq("id", id);
+  logIfError("editHabit", error);
 
   revalidatePath("/");
   revalidatePath("/habits");

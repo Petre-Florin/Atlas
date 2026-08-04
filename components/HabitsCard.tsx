@@ -1,13 +1,20 @@
 import { addHabit, restoreHabit } from "@/app/actions";
 import { HabitRow } from "./HabitRow";
+import { FrequencyPicker } from "./FrequencyPicker";
 import { SubmitButton } from "./SubmitButton";
+
+type Frequency = { type: "daily" | "weekly_days" | "weekly_count"; days: number[]; count: number | null };
 
 type Habit = {
   id: string;
   name: string;
   streak: number;
+  streakUnit: "days" | "weeks";
   loggedToday: boolean;
   loggedDates: Set<string>;
+  frequency: Frequency;
+  dueToday: boolean;
+  weekProgress?: { count: number; target: number };
 };
 
 type ArchivedHabit = { id: string; name: string };
@@ -40,13 +47,14 @@ export function HabitsCard({
         ))}
       </ul>
 
-      <form action={addHabit} className="mb-5 flex gap-2">
+      <form action={addHabit} className="mb-5 space-y-2">
         <input
           type="text"
           name="name"
           placeholder="Add a habit"
-          className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
         />
+        <FrequencyPicker />
         <SubmitButton>Add</SubmitButton>
       </form>
 

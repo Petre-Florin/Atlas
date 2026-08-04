@@ -42,7 +42,10 @@ export default async function DashboardPage() {
 
   const doneCount = goals.filter((g) => g.done).length;
   const goalsRatio = goals.length > 0 ? doneCount / goals.length : 0;
-  const bestStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0);
+  const bestHabit = habits.reduce<(typeof habits)[number] | null>(
+    (best, h) => (!best || h.streak > best.streak ? h : best),
+    null
+  );
   const journalStarted = Boolean(journal.wins || journal.mistakes || journal.tomorrow);
   const score = computeDailyScore(goals, habits, journalStarted);
   const milestoneHabit = habits.find(reachedMilestoneToday);
@@ -54,7 +57,11 @@ export default async function DashboardPage() {
         <DailyScoreHero name={displayName(user?.email)} score={score} timeZone={timeZone} />
 
         {milestoneHabit && (
-          <MilestoneBanner habitName={milestoneHabit.name} streak={milestoneHabit.streak} />
+          <MilestoneBanner
+            habitName={milestoneHabit.name}
+            streak={milestoneHabit.streak}
+            unit={milestoneHabit.streakUnit}
+          />
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -79,7 +86,10 @@ export default async function DashboardPage() {
               <div>
                 <p className="mb-3 text-sm text-paper">
                   Best streak:{" "}
-                  <span className="font-data text-thread">{bestStreak}d</span>
+                  <span className="font-data text-thread">
+                    {bestHabit?.streak ?? 0}
+                    {bestHabit?.streakUnit === "weeks" ? "w" : "d"}
+                  </span>
                 </p>
                 <ul className="space-y-1.5">
                   {habits.slice(0, 3).map((h) => (
@@ -88,7 +98,10 @@ export default async function DashboardPage() {
                       className="flex items-center justify-between text-xs text-paper-muted"
                     >
                       <span>{h.name}</span>
-                      <span className="font-data">{h.streak}d</span>
+                      <span className="font-data">
+                        {h.streak}
+                        {h.streakUnit === "weeks" ? "w" : "d"}
+                      </span>
                     </li>
                   ))}
                 </ul>
