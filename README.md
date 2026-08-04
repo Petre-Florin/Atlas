@@ -9,7 +9,7 @@ coupling between modules. Personal, single-user, not a product for distribution.
 
 Three strands:
 - **Goals** — a daily checklist that resets each day
-- **Habits** — habits you define yourself, with streak counters
+- **Habits** — habits you define yourself, with streak counters, three frequency types per habit
 - **Journal** — three daily prompts: wins, mistakes, tomorrow
 
 Everything else from the original brief (career tracking, GitHub integration,
