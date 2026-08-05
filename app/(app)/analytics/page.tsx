@@ -1,20 +1,24 @@
 import { TopBar } from "@/components/TopBar";
 import { ScoreHistoryChart } from "@/components/ScoreHistoryChart";
+import { ProductivityHistoryChart } from "@/components/ProductivityHistoryChart";
 import { ProgressBar } from "@/components/ProgressBar";
 import {
   getScoreHistory,
   getHabitConsistency,
   getJournalStats,
+  getProductivityHistory,
   getTargets,
 } from "@/lib/strands";
 
 export default async function AnalyticsPage() {
-  const [scoreHistory, habitConsistency, journalStats, targets] = await Promise.all([
-    getScoreHistory(30),
-    getHabitConsistency(30),
-    getJournalStats(30),
-    getTargets(),
-  ]);
+  const [scoreHistory, habitConsistency, journalStats, productivityHistory, targets] =
+    await Promise.all([
+      getScoreHistory(30),
+      getHabitConsistency(30),
+      getJournalStats(30),
+      getProductivityHistory(30),
+      getTargets(),
+    ]);
 
   return (
     <>
@@ -55,14 +59,12 @@ export default async function AnalyticsPage() {
             style={{ animationDelay: "160ms" }}
           >
             <h2 className="mb-4 font-display text-xl text-paper">Journal</h2>
-            <p className="text-sm text-paper">
+            <p className="mb-4 text-sm text-paper">
               <span className="font-data text-thread">{journalStats.entriesInWindow}</span>{" "}
-              entries in the last {journalStats.windowDays} days
-            </p>
-            <p className="mt-1 text-sm text-paper">
-              Current streak:{" "}
+              entries in the last {journalStats.windowDays} days · Current streak:{" "}
               <span className="font-data text-thread">{journalStats.currentStreak}d</span>
             </p>
+            <ProductivityHistoryChart data={productivityHistory} />
           </div>
 
           <div

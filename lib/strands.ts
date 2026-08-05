@@ -549,3 +549,22 @@ export async function getJournalStats(days = 30): Promise<JournalStats> {
     windowDays: days,
   };
 }
+
+export type DayProductivity = { date: string; productivity: number | null };
+
+export async function getProductivityHistory(days = 30): Promise<DayProductivity[]> {
+  const today = await getTodayForUser();
+  const dates = datesBack(today, days);
+  const startDate = dates[0];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("for_date, productivity")
+    .gte("for_date", startDate);
+  logIfError("getProductivityHistory", error);
+
+  const byDate = new Map((data ?? []).map((j) => [j.for_date, j.productivity as number | null]));
+
+  return dates.map((date) => ({ date, productivity: byDate.get(date) ?? null }));
+}
