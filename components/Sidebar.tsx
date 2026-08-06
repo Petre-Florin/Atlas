@@ -75,6 +75,19 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-hairline pt-3">
+        <Link
+          href="/data"
+          className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors ${
+            pathname === "/data"
+              ? "bg-surface text-paper"
+              : "text-paper-muted hover:bg-surface hover:text-paper"
+          }`}
+        >
+          <span className="w-4 text-center text-xs" aria-hidden>
+            ⇅
+          </span>
+          Data
+        </Link>
         <ThemeToggle />
       </div>
     </aside>

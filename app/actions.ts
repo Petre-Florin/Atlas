@@ -657,6 +657,109 @@ export async function deleteOpportunityCV(formData: FormData) {
   revalidatePath("/opportunities");
 }
 
+// ---------- Data import ----------
+
+export type ImportState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  counts?: Record<string, number>;
+};
+
+type ImportTableSpec = {
+  key: string; // key in the uploaded JSON
+  table: string; // actual Supabase table name
+};
+
+// Order matters: habits must be upserted before habit_logs, since
+// habit_logs.habit_id references habits.id.
+const IMPORT_TABLES: ImportTableSpec[] = [
+  { key: "goals", table: "goals" },
+  { key: "habits", table: "habits" },
+  { key: "targets", table: "targets" },
+  { key: "goalTemplates", table: "goal_templates" },
+  { key: "journalEntries", table: "journal_entries" },
+  { key: "opportunities", table: "opportunities" },
+  { key: "habitLogs", table: "habit_logs" },
+];
+
+export async function importData(
+  _prevState: ImportState,
+  formData: FormData
+): Promise<ImportState> {
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) {
+    return { status: "error", message: "No file selected." };
+  }
+
+  let parsed: unknown;
+  try {
+    const text = await file.text();
+    parsed = JSON.parse(text);
+  } catch {
+    return { status: "error", message: "That file isn't valid JSON." };
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("version" in parsed) ||
+    (parsed as { version: unknown }).version !== 1
+  ) {
+    return {
+      status: "error",
+      message: "This doesn't look like an Atlas export (missing or unrecognized version).",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Not signed in." };
+  }
+
+  const source = parsed as Record<string, unknown>;
+  const counts: Record<string, number> = {};
+
+  for (const { key, table } of IMPORT_TABLES) {
+    const rows = source[key];
+    if (!Array.isArray(rows)) {
+      counts[key] = 0;
+      continue;
+    }
+
+    const validRows = rows
+      .filter((r): r is Record<string, unknown> => typeof r === "object" && r !== null && "id" in r)
+      .map((r) => ({ ...r, user_id: user.id }));
+
+    if (validRows.length === 0) {
+      counts[key] = 0;
+      continue;
+    }
+
+    const { error } = await supabase.from(table).upsert(validRows, { onConflict: "id" });
+    if (error) {
+      logIfError(`importData (${table})`, error);
+      return {
+        status: "error",
+        message: `Failed while importing ${key}: ${error.message}. Nothing after this point was imported — earlier tables in the list may have already been written.`,
+        counts,
+      };
+    }
+    counts[key] = validRows.length;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/goals");
+  revalidatePath("/habits");
+  revalidatePath("/targets");
+  revalidatePath("/journal");
+  revalidatePath("/opportunities");
+
+  return { status: "success", message: "Import complete.", counts };
+}
+
 // ---------- Journal ----------
 
 export type JournalSaveState = { ok: boolean; savedAt: number };
