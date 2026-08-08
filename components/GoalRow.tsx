@@ -81,7 +81,7 @@ export function GoalRow({ goal, locked = false }: { goal: Goal; locked?: boolean
           } ${locked ? "cursor-not-allowed opacity-60" : "hover:border-thread"}`}
         />
         <span
-          className={`truncate text-sm transition-colors ${
+          className={`min-w-0 truncate text-sm transition-colors ${
             optimisticDone ? "text-paper-muted line-through" : "text-paper"
           }`}
         >

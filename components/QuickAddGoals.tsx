@@ -41,8 +41,8 @@ export function QuickAddGoals({ templates }: { templates: Template[] }) {
         <div className="mt-3 space-y-2 border-t border-hairline pt-3">
           {templates.map((t) => (
             <div key={t.id} className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-paper-muted">{t.title}</span>
-              <form action={deleteGoalTemplate}>
+              <span className="min-w-0 truncate text-paper-muted">{t.title}</span>
+              <form action={deleteGoalTemplate} className="flex-none">
                 <input type="hidden" name="id" value={t.id} />
                 <button
                   type="submit"

@@ -150,7 +150,7 @@ export function HabitRow({
                   : "border-hairline bg-transparent opacity-50 hover:border-grove hover:opacity-100"
             }`}
           />
-          <span className="truncate text-sm text-paper">{habit.name}</span>
+          <span className="min-w-0 truncate text-sm text-paper">{habit.name}</span>
           {label && (
             <span className="flex-none rounded-full border border-hairline px-1.5 py-0.5 text-[10px] text-paper-faint">
               {label}

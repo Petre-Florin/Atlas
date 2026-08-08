@@ -69,8 +69,8 @@ export function HabitsCard({
                 key={habit.id}
                 className="flex items-center justify-between gap-3 text-sm"
               >
-                <span className="text-paper-muted">{habit.name}</span>
-                <form action={restoreHabit}>
+                <span className="min-w-0 truncate text-paper-muted">{habit.name}</span>
+                <form action={restoreHabit} className="flex-none">
                   <input type="hidden" name="id" value={habit.id} />
                   <button
                     type="submit"

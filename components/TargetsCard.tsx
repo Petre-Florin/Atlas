@@ -74,11 +74,11 @@ export function TargetsCard({
                 key={target.id}
                 className="flex items-center justify-between gap-3 text-sm"
               >
-                <span className="text-paper-muted">
+                <span className="min-w-0 truncate text-paper-muted">
                   {target.title} ({target.current_count}
                   {target.target_count > 0 ? `/${target.target_count}` : ""})
                 </span>
-                <form action={restoreTarget}>
+                <form action={restoreTarget} className="flex-none">
                   <input type="hidden" name="id" value={target.id} />
                   <button
                     type="submit"

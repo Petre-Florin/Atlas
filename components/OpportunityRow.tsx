@@ -190,7 +190,7 @@ export function OpportunityRow({ opp, cv }: { opp: Opportunity; cv: CVInfo | nul
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="truncate text-sm text-paper">{opp.name}</span>
+            <span className="min-w-0 truncate text-sm text-paper">{opp.name}</span>
             {opp.type && (
               <span className="flex-none rounded-full border border-hairline px-1.5 py-0.5 text-[10px] text-paper-faint">
                 {opp.type}
