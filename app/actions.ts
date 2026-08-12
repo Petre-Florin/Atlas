@@ -198,13 +198,25 @@ export async function copyGoalsToTomorrow(_formData: FormData) {
 // ---------- Habits ----------
 
 function parseFrequency(formData: FormData) {
-  const frequencyType = String(formData.get("frequencyType") || "daily");
+  let frequencyType = String(formData.get("frequencyType") || "daily");
   const frequencyDays = formData
     .getAll("frequencyDays")
     .map((d) => Number(d))
     .filter((n) => !Number.isNaN(n));
   const frequencyCountRaw = formData.get("frequencyCount");
-  const frequencyCount = frequencyCountRaw ? Math.max(1, Number(frequencyCountRaw)) : null;
+  let frequencyCount = frequencyCountRaw ? Math.max(1, Number(frequencyCountRaw)) : null;
+
+  // Safety net: a "specific days" habit with no days selected, or a
+  // "times per week" habit with no valid count, can never be satisfied —
+  // fall back to daily rather than let a permanently-stuck habit get saved.
+  if (frequencyType === "weekly_days" && frequencyDays.length === 0) {
+    frequencyType = "daily";
+  }
+  if (frequencyType === "weekly_count" && (!frequencyCount || frequencyCount < 1)) {
+    frequencyType = "daily";
+    frequencyCount = null;
+  }
+
   return { frequencyType, frequencyDays, frequencyCount };
 }
 

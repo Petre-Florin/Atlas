@@ -79,6 +79,11 @@ export function FrequencyPicker({
           ))}
         </div>
       )}
+      {type === "weekly_days" && days.length === 0 && (
+        <p className="text-xs text-rust">
+          Pick at least one day — without one, this habit will never be due.
+        </p>
+      )}
 
       {type === "weekly_count" && (
         <div className="flex items-center gap-2">
