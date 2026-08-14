@@ -266,55 +266,6 @@ export function computeDailyScore(
 
 type ActivityItem = { date: string; label: string };
 
-export async function getRecentActivity(limit = 6): Promise<ActivityItem[]> {
-  const supabase = await createClient();
-
-  const [goalsRes, logsRes, journalRes, habitsRes] = await Promise.all([
-    supabase
-      .from("goals")
-      .select("title, completed_at")
-      .not("completed_at", "is", null)
-      .order("completed_at", { ascending: false })
-      .limit(limit),
-    supabase
-      .from("habit_logs")
-      .select("habit_id, for_date, created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    supabase
-      .from("journal_entries")
-      .select("for_date, updated_at")
-      .order("updated_at", { ascending: false })
-      .limit(limit),
-    supabase.from("habits").select("id, name"),
-  ]);
-  logIfError("getRecentActivity (goals)", goalsRes.error);
-  logIfError("getRecentActivity (logs)", logsRes.error);
-  logIfError("getRecentActivity (journal)", journalRes.error);
-  logIfError("getRecentActivity (habits)", habitsRes.error);
-
-  const habitNames = new Map((habitsRes.data ?? []).map((h) => [h.id, h.name]));
-
-  const items: ActivityItem[] = [
-    ...(goalsRes.data ?? []).map((g) => ({
-      date: g.completed_at as string,
-      label: `Completed "${g.title}"`,
-    })),
-    ...(logsRes.data ?? []).map((l) => ({
-      date: l.created_at,
-      label: `Logged ${habitNames.get(l.habit_id) ?? "a habit"}`,
-    })),
-    ...(journalRes.data ?? []).map((j) => ({
-      date: j.updated_at,
-      label: "Wrote in journal",
-    })),
-  ];
-
-  return items
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, limit);
-}
-
 export async function getArchivedHabits() {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -358,26 +309,6 @@ export async function getArchivedTargets() {
   return data ?? [];
 }
 
-export async function getGeneralActivityDates(): Promise<Set<string>> {
-  const supabase = await createClient();
-
-  const [goalsRes, logsRes, journalRes] = await Promise.all([
-    supabase.from("goals").select("for_date").eq("done", true),
-    supabase.from("habit_logs").select("for_date"),
-    supabase.from("journal_entries").select("for_date"),
-  ]);
-  logIfError("getGeneralActivityDates (goals)", goalsRes.error);
-  logIfError("getGeneralActivityDates (logs)", logsRes.error);
-  logIfError("getGeneralActivityDates (journal)", journalRes.error);
-
-  const dates = new Set<string>();
-  (goalsRes.data ?? []).forEach((g) => dates.add(g.for_date));
-  (logsRes.data ?? []).forEach((l) => dates.add(l.for_date));
-  (journalRes.data ?? []).forEach((j) => dates.add(j.for_date));
-
-  return dates;
-}
-
 const MILESTONE_STREAKS = [7, 14, 30, 60, 100, 150, 200, 365];
 const MILESTONE_WEEKS = [4, 8, 12, 26, 52, 104];
 
@@ -409,54 +340,6 @@ function datesBack(today: string, days: number): string[] {
 
 export type DayScore = { date: string; score: number | null };
 
-export async function getScoreHistory(days = 30): Promise<DayScore[]> {
-  const today = await getTodayForUser();
-  const dates = datesBack(today, days);
-  const startDate = dates[0];
-
-  const supabase = await createClient();
-  const [goalsRes, habitsRes, logsRes, journalRes] = await Promise.all([
-    supabase.from("goals").select("for_date, done").gte("for_date", startDate),
-    supabase.from("habits").select("id").eq("archived", false),
-    supabase.from("habit_logs").select("habit_id, for_date").gte("for_date", startDate),
-    supabase
-      .from("journal_entries")
-      .select("for_date, wins, mistakes, tomorrow")
-      .gte("for_date", startDate),
-  ]);
-  logIfError("getScoreHistory (goals)", goalsRes.error);
-  logIfError("getScoreHistory (habits)", habitsRes.error);
-  logIfError("getScoreHistory (logs)", logsRes.error);
-  logIfError("getScoreHistory (journal)", journalRes.error);
-
-  const goals = goalsRes.data ?? [];
-  const activeHabitCount = (habitsRes.data ?? []).length;
-  const logs = logsRes.data ?? [];
-  const journalEntries = journalRes.data ?? [];
-
-  return dates.map((date) => {
-    const goalsForDate = goals.filter((g) => g.for_date === date);
-    const loggedHabitIds = new Set(
-      logs.filter((l) => l.for_date === date).map((l) => l.habit_id)
-    );
-    const journalEntry = journalEntries.find((j) => j.for_date === date);
-    const journalStarted = Boolean(
-      journalEntry && (journalEntry.wins || journalEntry.mistakes || journalEntry.tomorrow)
-    );
-
-    const parts: number[] = [];
-    if (goalsForDate.length > 0) {
-      parts.push(goalsForDate.filter((g) => g.done).length / goalsForDate.length);
-    }
-    if (activeHabitCount > 0) {
-      parts.push(loggedHabitIds.size / activeHabitCount);
-    }
-    parts.push(journalStarted ? 1 : 0);
-
-    return { date, score: parts.length > 0 ? parts.reduce((a, b) => a + b, 0) / parts.length : null };
-  });
-}
-
 function expectedOccurrencesInWindow(
   freq: HabitFrequency,
   windowDays: number,
@@ -484,25 +367,248 @@ export type HabitConsistency = {
   expected: number;
 };
 
-export async function getHabitConsistency(days = 30): Promise<HabitConsistency[]> {
+export type JournalStats = { entriesInWindow: number; currentStreak: number; windowDays: number };
+
+export type DayProductivity = { date: string; productivity: number | null };
+
+// ============================================================
+// Page-level aggregators — Dashboard and Analytics each render
+// several widgets that used to call separate functions above,
+// several of which independently re-queried the same tables
+// (goals, habits, habit_logs, journal_entries) over overlapping
+// windows. These two functions fetch each table exactly once per
+// page load and derive every widget's data from that shared
+// result, using the same calculation logic as the individual
+// functions above (which remain in place for the standalone
+// Goals/Habits/Targets/Journal pages, which don't have this
+// redundancy problem since each only calls one fetcher).
+// ============================================================
+
+export type DashboardData = {
+  goals: { id: string; title: string; done: boolean }[];
+  habits: Awaited<ReturnType<typeof getHabitsWithStreaks>>;
+  journal: { wins: string; mistakes: string; tomorrow: string; productivity: number | null };
+  activity: ActivityItem[];
+  generalDates: Set<string>;
+  targets: { id: string; title: string; unit: string; current_count: number; target_count: number }[];
+};
+
+export async function getDashboardData(): Promise<DashboardData> {
   const today = await getTodayForUser();
-  const startDate = datesBack(today, days)[0];
+  const supabase = await createClient();
+
+  // A 60-day buffer comfortably covers the 35-day heatmap and the
+  // recent-activity feed without re-fetching a user's entire goal/journal
+  // history on every dashboard load. Habit logs stay unbounded, since
+  // streak length has no fixed ceiling and correctness there matters more
+  // than shaving a bit more off the payload.
+  const windowStart = (() => {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() - 60);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const [habitsRes, logsRes, goalsRes, journalRes, targetsRes] = await Promise.all([
+    supabase
+      .from("habits")
+      .select("id, name, frequency_type, frequency_days, frequency_count")
+      .eq("archived", false)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("habit_logs")
+      .select("habit_id, for_date, created_at")
+      .order("for_date", { ascending: false }),
+    supabase
+      .from("goals")
+      .select("id, title, done, completed_at, for_date")
+      .gte("for_date", windowStart)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("journal_entries")
+      .select("for_date, wins, mistakes, tomorrow, productivity, updated_at")
+      .gte("for_date", windowStart),
+    supabase
+      .from("targets")
+      .select("id, title, unit, current_count, target_count")
+      .eq("archived", false)
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  logIfError("getDashboardData (habits)", habitsRes.error);
+  logIfError("getDashboardData (logs)", logsRes.error);
+  logIfError("getDashboardData (goals)", goalsRes.error);
+  logIfError("getDashboardData (journal)", journalRes.error);
+  logIfError("getDashboardData (targets)", targetsRes.error);
+
+  const habitsRaw = habitsRes.data ?? [];
+  const logs = logsRes.data ?? [];
+  const goalsWindow = goalsRes.data ?? [];
+  const journalWindow = journalRes.data ?? [];
+  const targets = targetsRes.data ?? [];
+
+  // ---- Habits with streaks (same logic as getHabitsWithStreaks) ----
+  const currentWeek = startOfWeek(today);
+  const habits = habitsRaw.map((h) => {
+    const habitDates = logs.filter((l) => l.habit_id === h.id).map((l) => l.for_date);
+    const freq: HabitFrequency = {
+      type: (h.frequency_type as HabitFrequency["type"]) || "daily",
+      days: h.frequency_days ?? [],
+      count: h.frequency_count,
+    };
+
+    let streak: number;
+    let streakUnit: "days" | "weeks";
+    if (freq.type === "weekly_days") {
+      streak = computeWeeklyDaysStreak(habitDates, today, freq.days);
+      streakUnit = "days";
+    } else if (freq.type === "weekly_count") {
+      streak = computeWeeklyCountStreak(habitDates, today, freq.count ?? 0);
+      streakUnit = "weeks";
+    } else {
+      streak = computeStreak(habitDates, today);
+      streakUnit = "days";
+    }
+
+    const weekProgress =
+      freq.type === "weekly_count"
+        ? {
+            count: habitDates.filter((d) => startOfWeek(d) === currentWeek).length,
+            target: freq.count ?? 0,
+          }
+        : undefined;
+
+    return {
+      id: h.id,
+      name: h.name,
+      streak,
+      streakUnit,
+      loggedToday: habitDates.includes(today),
+      loggedDates: new Set(habitDates),
+      frequency: freq,
+      dueToday: isDueToday(freq, today),
+      weekProgress,
+    };
+  });
+
+  // ---- Today's goals ----
+  const goals = goalsWindow
+    .filter((g) => g.for_date === today)
+    .map((g) => ({ id: g.id, title: g.title, done: g.done }));
+
+  // ---- Today's journal ----
+  const journalToday = journalWindow.find((j) => j.for_date === today);
+  const journal = journalToday
+    ? {
+        wins: journalToday.wins,
+        mistakes: journalToday.mistakes,
+        tomorrow: journalToday.tomorrow,
+        productivity: journalToday.productivity,
+      }
+    : { wins: "", mistakes: "", tomorrow: "", productivity: null };
+
+  // ---- Recent activity feed ----
+  // Note: unlike the original getRecentActivity, this only looks within the
+  // 60-day goals/journal window for candidates before taking the most recent
+  // 6 — a real but minor behavior difference: if nothing's been completed or
+  // written in 60+ days, this shows fewer items instead of reaching further
+  // back. Habit logs are unaffected since that fetch stays unbounded.
+  const habitNames = new Map(habitsRaw.map((h) => [h.id, h.name]));
+  const activityLimit = 6;
+  const activityItems: ActivityItem[] = [
+    ...goalsWindow
+      .filter((g) => g.completed_at !== null)
+      .sort((a, b) => new Date(b.completed_at as string).getTime() - new Date(a.completed_at as string).getTime())
+      .slice(0, activityLimit)
+      .map((g) => ({ date: g.completed_at as string, label: `Completed "${g.title}"` })),
+    ...[...logs]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, activityLimit)
+      .map((l) => ({ date: l.created_at, label: `Logged ${habitNames.get(l.habit_id) ?? "a habit"}` })),
+    ...[...journalWindow]
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, activityLimit)
+      .map((j) => ({ date: j.updated_at, label: "Wrote in journal" })),
+  ];
+  const activity = activityItems
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, activityLimit);
+
+  // ---- General activity dates (heatmap only ever reads the last 35 days,
+  // so the 60-day goals/journal window and the unbounded habit-log fetch
+  // both cover it with room to spare) ----
+  const generalDates = new Set<string>();
+  goalsWindow.filter((g) => g.done).forEach((g) => generalDates.add(g.for_date));
+  logs.forEach((l) => generalDates.add(l.for_date));
+  journalWindow.forEach((j) => generalDates.add(j.for_date));
+
+  return { goals, habits, journal, activity, generalDates, targets };
+}
+
+export type AnalyticsData = {
+  scoreHistory: DayScore[];
+  habitConsistency: HabitConsistency[];
+  journalStats: JournalStats;
+  productivityHistory: DayProductivity[];
+};
+
+export async function getAnalyticsData(days = 30): Promise<AnalyticsData> {
+  const today = await getTodayForUser();
+  const dates = datesBack(today, days);
+  const startDate = dates[0];
 
   const supabase = await createClient();
-  const [habitsRes, logsRes] = await Promise.all([
+  const [goalsRes, habitsRes, logsRes, journalRes] = await Promise.all([
+    supabase.from("goals").select("for_date, done").gte("for_date", startDate),
     supabase
       .from("habits")
       .select("id, name, created_at, frequency_type, frequency_days, frequency_count")
       .eq("archived", false),
     supabase.from("habit_logs").select("habit_id, for_date").gte("for_date", startDate),
+    supabase
+      .from("journal_entries")
+      .select("for_date, wins, mistakes, tomorrow, productivity")
+      .gte("for_date", startDate),
   ]);
-  logIfError("getHabitConsistency (habits)", habitsRes.error);
-  logIfError("getHabitConsistency (logs)", logsRes.error);
+  logIfError("getAnalyticsData (goals)", goalsRes.error);
+  logIfError("getAnalyticsData (habits)", habitsRes.error);
+  logIfError("getAnalyticsData (logs)", logsRes.error);
+  logIfError("getAnalyticsData (journal)", journalRes.error);
 
+  const goals = goalsRes.data ?? [];
+  const habitsRaw = habitsRes.data ?? [];
   const logs = logsRes.data ?? [];
-  const todayMs = new Date(today).getTime();
+  const journalEntries = journalRes.data ?? [];
+  const activeHabitCount = habitsRaw.length;
 
-  return (habitsRes.data ?? [])
+  // ---- Daily score history (same logic as getScoreHistory) ----
+  const scoreHistory: DayScore[] = dates.map((date) => {
+    const goalsForDate = goals.filter((g) => g.for_date === date);
+    const loggedHabitIds = new Set(
+      logs.filter((l) => l.for_date === date).map((l) => l.habit_id)
+    );
+    const journalEntry = journalEntries.find((j) => j.for_date === date);
+    const journalStarted = Boolean(
+      journalEntry && (journalEntry.wins || journalEntry.mistakes || journalEntry.tomorrow)
+    );
+
+    const parts: number[] = [];
+    if (goalsForDate.length > 0) {
+      parts.push(goalsForDate.filter((g) => g.done).length / goalsForDate.length);
+    }
+    if (activeHabitCount > 0) {
+      parts.push(loggedHabitIds.size / activeHabitCount);
+    }
+    parts.push(journalStarted ? 1 : 0);
+
+    return {
+      date,
+      score: parts.length > 0 ? parts.reduce((a, b) => a + b, 0) / parts.length : null,
+    };
+  });
+
+  // ---- Habit consistency (same logic as getHabitConsistency) ----
+  const todayMs = new Date(today).getTime();
+  const habitConsistency: HabitConsistency[] = habitsRaw
     .map((h) => {
       const createdDate = h.created_at.slice(0, 10);
       const daysSinceCreated =
@@ -525,46 +631,26 @@ export async function getHabitConsistency(days = 30): Promise<HabitConsistency[]
       };
     })
     .sort((a, b) => b.ratio - a.ratio);
-}
 
-export type JournalStats = { entriesInWindow: number; currentStreak: number; windowDays: number };
-
-export async function getJournalStats(days = 30): Promise<JournalStats> {
-  const today = await getTodayForUser();
-  const startDate = datesBack(today, days)[0];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("journal_entries")
-    .select("for_date, wins, mistakes, tomorrow")
-    .gte("for_date", startDate);
-  logIfError("getJournalStats", error);
-
-  const entries = (data ?? []).filter((j) => j.wins || j.mistakes || j.tomorrow);
-  const dates = entries.map((j) => j.for_date);
-
-  return {
-    entriesInWindow: entries.length,
-    currentStreak: computeStreak(dates, today),
+  // ---- Journal stats (same logic as getJournalStats, including its
+  // existing limitation: currentStreak is only ever as accurate as this
+  // `days`-day window — unchanged from before this consolidation) ----
+  const journalEntriesFiltered = journalEntries.filter((j) => j.wins || j.mistakes || j.tomorrow);
+  const journalDates = journalEntriesFiltered.map((j) => j.for_date);
+  const journalStats: JournalStats = {
+    entriesInWindow: journalEntriesFiltered.length,
+    currentStreak: computeStreak(journalDates, today),
     windowDays: days,
   };
-}
 
-export type DayProductivity = { date: string; productivity: number | null };
+  // ---- Productivity history (same logic as getProductivityHistory) ----
+  const productivityByDate = new Map(
+    journalEntries.map((j) => [j.for_date, j.productivity as number | null])
+  );
+  const productivityHistory: DayProductivity[] = dates.map((date) => ({
+    date,
+    productivity: productivityByDate.get(date) ?? null,
+  }));
 
-export async function getProductivityHistory(days = 30): Promise<DayProductivity[]> {
-  const today = await getTodayForUser();
-  const dates = datesBack(today, days);
-  const startDate = dates[0];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("journal_entries")
-    .select("for_date, productivity")
-    .gte("for_date", startDate);
-  logIfError("getProductivityHistory", error);
-
-  const byDate = new Map((data ?? []).map((j) => [j.for_date, j.productivity as number | null]));
-
-  return dates.map((date) => ({ date, productivity: byDate.get(date) ?? null }));
+  return { scoreHistory, habitConsistency, journalStats, productivityHistory };
 }

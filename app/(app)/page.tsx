@@ -6,12 +6,7 @@ import { DailyScoreHero } from "@/components/DailyScoreHero";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { MilestoneBanner } from "@/components/MilestoneBanner";
 import {
-  getGoals,
-  getHabitsWithStreaks,
-  getTodayJournal,
-  getRecentActivity,
-  getGeneralActivityDates,
-  getTargets,
+  getDashboardData,
   computeDailyScore,
   reachedMilestoneToday,
 } from "@/lib/strands";
@@ -30,15 +25,8 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [goals, habits, journal, activity, generalDates, timeZone, targets] = await Promise.all([
-    getGoals(),
-    getHabitsWithStreaks(),
-    getTodayJournal(),
-    getRecentActivity(),
-    getGeneralActivityDates(),
-    getUserTimezone(),
-    getTargets(),
-  ]);
+  const [{ goals, habits, journal, activity, generalDates, targets }, timeZone] =
+    await Promise.all([getDashboardData(), getUserTimezone()]);
 
   const doneCount = goals.filter((g) => g.done).length;
   const goalsRatio = goals.length > 0 ? doneCount / goals.length : 0;

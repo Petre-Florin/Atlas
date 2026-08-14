@@ -2,23 +2,11 @@ import { TopBar } from "@/components/TopBar";
 import { ScoreHistoryChart } from "@/components/ScoreHistoryChart";
 import { ProductivityHistoryChart } from "@/components/ProductivityHistoryChart";
 import { ProgressBar } from "@/components/ProgressBar";
-import {
-  getScoreHistory,
-  getHabitConsistency,
-  getJournalStats,
-  getProductivityHistory,
-  getTargets,
-} from "@/lib/strands";
+import { getAnalyticsData, getTargets } from "@/lib/strands";
 
 export default async function AnalyticsPage() {
-  const [scoreHistory, habitConsistency, journalStats, productivityHistory, targets] =
-    await Promise.all([
-      getScoreHistory(30),
-      getHabitConsistency(30),
-      getJournalStats(30),
-      getProductivityHistory(30),
-      getTargets(),
-    ]);
+  const [{ scoreHistory, habitConsistency, journalStats, productivityHistory }, targets] =
+    await Promise.all([getAnalyticsData(30), getTargets()]);
 
   return (
     <>
