@@ -13,7 +13,7 @@ export default async function JournalPage() {
   return (
     <>
       <TopBar title="Journal" />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-xl">
           <JournalCard entry={entry} recentEntries={recentEntries} today={today} />
         </div>

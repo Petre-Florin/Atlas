@@ -11,7 +11,7 @@ export default async function AnalyticsPage() {
   return (
     <>
       <TopBar title="Analytics" />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-2xl space-y-5">
           <div className="animate-fade-in-up rounded-2xl border border-hairline bg-surface p-6">
             <h2 className="mb-4 font-display text-xl text-paper">Daily score</h2>

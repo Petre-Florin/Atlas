@@ -11,7 +11,7 @@ export async function TopBar({ title }: { title: string }) {
   });
 
   return (
-    <header className="flex items-center justify-between border-b border-hairline px-8 py-5">
+    <header className="flex items-center justify-between border-b border-hairline px-4 py-4 md:px-8 md:py-5">
       <div>
         <h2 className="font-display text-xl text-paper">{title}</h2>
         <p className="mt-0.5 text-xs text-paper-muted">{dateLabel}</p>

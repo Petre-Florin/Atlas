@@ -5,7 +5,7 @@ export default function DataPage() {
   return (
     <>
       <TopBar title="Data" />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-xl space-y-5">
           <div className="animate-fade-in-up rounded-2xl border border-hairline bg-surface p-6">
             <h2 className="mb-2 font-display text-xl text-paper">Export</h2>

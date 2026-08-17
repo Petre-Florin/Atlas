@@ -12,7 +12,7 @@ export default async function GoalsPage() {
   return (
     <>
       <TopBar title="Goals" />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-xl space-y-5">
           <GoalsCard goals={goals} templates={templates} />
           <GoalsCard goals={tomorrowGoals} variant="tomorrow" />

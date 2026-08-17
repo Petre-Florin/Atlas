@@ -3,29 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
-
-const activeStrands = [
-  { href: "/", label: "Dashboard", icon: "◆" },
-  { href: "/goals", label: "Goals", icon: "◎" },
-  { href: "/habits", label: "Habits", icon: "≋" },
-  { href: "/targets", label: "Targets", icon: "▲" },
-  { href: "/journal", label: "Journal", icon: "✎" },
-  { href: "/analytics", label: "Analytics", icon: "▤" },
-  { href: "/opportunities", label: "Opportunities", icon: "◇" },
-];
-
-const futureStrands = [
-  { label: "Learning" },
-  { label: "Projects" },
-  { label: "Finance" },
-  { label: "Knowledge" },
-];
+import { activeStrands, futureStrands } from "@/lib/nav";
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-56 flex-none flex-col border-r border-hairline bg-sidebar px-4 py-6">
+    <aside className="hidden w-56 flex-none flex-col border-r border-hairline bg-sidebar px-4 py-6 md:flex">
       <div className="mb-8 px-2">
         <h1 className="font-display text-xl italic text-paper">Atlas</h1>
       </div>
