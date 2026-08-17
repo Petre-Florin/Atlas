@@ -504,6 +504,14 @@ export async function addOpportunity(formData: FormData) {
   const type = String(formData.get("type") || "").trim();
   if (!name) return;
 
+  const status = String(formData.get("status") || "watching").trim();
+  const nextAction = String(formData.get("nextAction") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  const link = String(formData.get("link") || "").trim();
+  const contact = String(formData.get("contact") || "").trim();
+  const location = String(formData.get("location") || "").trim();
+  const deadlineRaw = String(formData.get("deadline") || "").trim();
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -514,7 +522,13 @@ export async function addOpportunity(formData: FormData) {
     user_id: user.id,
     name,
     type,
-    status: "watching",
+    status,
+    next_action: nextAction,
+    notes,
+    link,
+    contact,
+    location,
+    deadline: deadlineRaw || null,
   });
   logIfError("addOpportunity", error);
 
@@ -571,6 +585,28 @@ export async function deleteOpportunity(formData: FormData) {
   const id = String(formData.get("id"));
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Clean up any attached files first — opportunity_files rows cascade-
+  // delete automatically via the FK, but the actual Storage objects don't,
+  // so they'd otherwise be left behind as orphans with nothing pointing
+  // to them.
+  const { data: files, error: filesError } = await supabase
+    .from("opportunity_files")
+    .select("storage_path")
+    .eq("opportunity_id", id);
+  logIfError("deleteOpportunity (list files)", filesError);
+
+  if (files && files.length > 0) {
+    const { error: removeError } = await supabase.storage
+      .from("documents")
+      .remove(files.map((f) => f.storage_path));
+    logIfError("deleteOpportunity (remove files)", removeError);
+  }
+
   const { error } = await supabase.from("opportunities").delete().eq("id", id);
   logIfError("deleteOpportunity", error);
 
@@ -611,10 +647,15 @@ export async function uploadCV(formData: FormData) {
   revalidatePath("/opportunities");
 }
 
-export async function uploadOpportunityCV(formData: FormData) {
-  const id = String(formData.get("id"));
+// Generalized file attachments (CV, cover letter, certificate, etc.) —
+// replaces the old single-hardcoded-CV-slot pattern. Multiple files per
+// opportunity, each tracked as its own row in opportunity_files rather
+// than encoded into a filename.
+export async function uploadOpportunityFile(formData: FormData) {
+  const opportunityId = String(formData.get("id"));
+  const label = String(formData.get("label") || "").trim() || "File";
   const file = formData.get("file") as File | null;
-  if (!id || !file || file.size === 0) return;
+  if (!opportunityId || !file || file.size === 0) return;
 
   const supabase = await createClient();
   const {
@@ -622,49 +663,48 @@ export async function uploadOpportunityCV(formData: FormData) {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Clear any existing file for this opportunity first — a replacement
-  // might have a different extension than what's currently stored.
-  const { data: existing } = await supabase.storage
-    .from("documents")
-    .list(`${user.id}/opportunities`);
-  const toRemove = (existing ?? [])
-    .filter((f) => f.name.startsWith(`${id}-cv.`))
-    .map((f) => `${user.id}/opportunities/${f.name}`);
-  if (toRemove.length > 0) {
-    const { error: removeError } = await supabase.storage.from("documents").remove(toRemove);
-    logIfError("uploadOpportunityCV (remove old)", removeError);
-  }
-
   const ext = file.name.split(".").pop() || "pdf";
-  const path = `${user.id}/opportunities/${id}-cv.${ext}`;
+  const fileId = crypto.randomUUID();
+  const path = `${user.id}/opportunities/${opportunityId}/${fileId}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from("documents")
-    .upload(path, file, { upsert: true });
-  logIfError("uploadOpportunityCV", error);
+  const { error: uploadError } = await supabase.storage.from("documents").upload(path, file);
+  logIfError("uploadOpportunityFile (storage)", uploadError);
+  if (uploadError) return;
+
+  const { error } = await supabase.from("opportunity_files").insert({
+    id: fileId,
+    opportunity_id: opportunityId,
+    user_id: user.id,
+    label,
+    file_name: file.name,
+    storage_path: path,
+  });
+  logIfError("uploadOpportunityFile (db)", error);
 
   revalidatePath("/opportunities");
 }
 
-export async function deleteOpportunityCV(formData: FormData) {
-  const id = String(formData.get("id"));
+export async function deleteOpportunityFile(formData: FormData) {
+  const fileId = String(formData.get("fileId"));
+  if (!fileId) return;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
 
-  const { data: existing } = await supabase.storage
+  const { data: row, error: fetchError } = await supabase
+    .from("opportunity_files")
+    .select("storage_path")
+    .eq("id", fileId)
+    .maybeSingle();
+  logIfError("deleteOpportunityFile (fetch)", fetchError);
+  if (!row) return;
+
+  const { error: removeError } = await supabase.storage
     .from("documents")
-    .list(`${user.id}/opportunities`);
-  const toRemove = (existing ?? [])
-    .filter((f) => f.name.startsWith(`${id}-cv.`))
-    .map((f) => `${user.id}/opportunities/${f.name}`);
-  if (toRemove.length > 0) {
-    const { error } = await supabase.storage.from("documents").remove(toRemove);
-    logIfError("deleteOpportunityCV", error);
-  }
+    .remove([row.storage_path]);
+  logIfError("deleteOpportunityFile (storage)", removeError);
+
+  const { error } = await supabase.from("opportunity_files").delete().eq("id", fileId);
+  logIfError("deleteOpportunityFile (db)", error);
 
   revalidatePath("/opportunities");
 }

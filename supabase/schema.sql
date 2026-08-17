@@ -280,3 +280,41 @@ alter table habits add column if not exists frequency_days int[] not null defaul
 -- frequency_days: weekday numbers due, 0=Sun..6=Sat (only used for 'weekly_days')
 alter table habits add column if not exists frequency_count int;
 -- frequency_count: target logs per week (only used for 'weekly_count')
+
+-- ============================================================
+-- OPPORTUNITY FILES — replaces the old single-hardcoded-CV-slot
+-- pattern (which encoded the file's identity into its filename,
+-- "{opportunity_id}-cv.ext", and had to be found via Storage
+-- directory listing). This table tracks arbitrary named files per
+-- opportunity (CV, cover letter, certificate, etc.) properly in
+-- the database instead. Storage path convention:
+-- {user_id}/opportunities/{opportunity_id}/{file_id}.{ext} — the
+-- existing Storage RLS policies on the "documents" bucket already
+-- work for this (they only check that the first path segment is
+-- the user's own id, regardless of nesting depth below that).
+--
+-- Note: this does NOT migrate any files uploaded under the old
+-- "{id}-cv.ext" convention — those were only ever findable by
+-- filename pattern, not tracked in any table, so there's nothing
+-- reliable to migrate from. If you'd already attached a CV to an
+-- opportunity before this migration, re-attach it once through the
+-- new UI; the old file will just sit unused in Storage.
+-- ============================================================
+create table if not exists opportunity_files (
+  id uuid primary key default gen_random_uuid(),
+  opportunity_id uuid not null references opportunities(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  label text not null default 'File',
+  file_name text not null,
+  storage_path text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists opportunity_files_opp_idx on opportunity_files (opportunity_id);
+
+alter table opportunity_files enable row level security;
+
+create policy "Users manage their own opportunity files"
+  on opportunity_files for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

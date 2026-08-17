@@ -1,15 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import {
-  updateOpportunityStatus,
-  editOpportunity,
-  deleteOpportunity,
-  uploadOpportunityCV,
-  deleteOpportunityCV,
-} from "@/app/actions";
+import { updateOpportunityStatus, editOpportunity, deleteOpportunity } from "@/app/actions";
 import { TypeSelect } from "./TypeSelect";
-import { SubmitButton } from "./SubmitButton";
+import { OpportunityFiles } from "./OpportunityFiles";
+import type { OpportunityFile } from "@/lib/documents";
 
 type Opportunity = {
   id: string;
@@ -23,8 +18,6 @@ type Opportunity = {
   location: string;
   deadline: string | null;
 };
-
-type CVInfo = { name: string; url: string | null };
 
 const STATUSES = ["watching", "applied", "interview", "offer", "rejected"] as const;
 const STATUS_LABELS: Record<string, string> = {
@@ -51,45 +44,7 @@ function DeadlineBadge({ date }: { date: string }) {
   );
 }
 
-function CVAttachment({ opportunityId, cv }: { opportunityId: string; cv: CVInfo | null }) {
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      {cv ? (
-        <>
-          <span className="truncate text-xs text-paper-muted">{cv.name}</span>
-          {cv.url && (
-            <a href={cv.url} download className="text-xs text-thread hover:underline">
-              Download
-            </a>
-          )}
-          <form action={deleteOpportunityCV}>
-            <input type="hidden" name="id" value={opportunityId} />
-            <button
-              type="submit"
-              className="text-xs text-paper-faint transition-colors hover:text-rust"
-            >
-              Remove CV
-            </button>
-          </form>
-        </>
-      ) : (
-        <form action={uploadOpportunityCV} className="flex flex-wrap items-center gap-2">
-          <input type="hidden" name="id" value={opportunityId} />
-          <input
-            type="file"
-            name="file"
-            accept=".pdf,.doc,.docx"
-            required
-            className="text-xs text-paper-faint file:mr-2 file:rounded file:border-0 file:bg-surface-raised file:px-2 file:py-0.5 file:text-xs file:text-paper"
-          />
-          <SubmitButton>Attach CV</SubmitButton>
-        </form>
-      )}
-    </div>
-  );
-}
-
-export function OpportunityRow({ opp, cv }: { opp: Opportunity; cv: CVInfo | null }) {
+export function OpportunityRow({ opp, files }: { opp: Opportunity; files: OpportunityFile[] }) {
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState(opp.status);
   const [, startTransition] = useTransition();
@@ -248,7 +203,7 @@ export function OpportunityRow({ opp, cv }: { opp: Opportunity; cv: CVInfo | nul
           </option>
         ))}
       </select>
-      <CVAttachment opportunityId={opp.id} cv={cv} />
+      <OpportunityFiles opportunityId={opp.id} files={files} />
     </div>
   );
 }

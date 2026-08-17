@@ -33,40 +33,52 @@ export async function getCurrentCV(): Promise<CVInfo | null> {
   };
 }
 
-export async function getOpportunityCVs(): Promise<Record<string, CVInfo>> {
+export type OpportunityFile = {
+  id: string;
+  label: string;
+  fileName: string;
+  createdAt: string;
+  url: string | null;
+};
+
+// Replaces the old getOpportunityCVs, which found files by scanning
+// Storage and pattern-matching filenames like "{id}-cv.ext". Files are
+// now tracked properly in the opportunity_files table, so this just
+// reads that table and signs a fresh download URL per file.
+export async function getOpportunityFilesGrouped(): Promise<Record<string, OpportunityFile[]>> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return {};
 
-  const { data: files, error } = await supabase.storage
-    .from("documents")
-    .list(`${user.id}/opportunities`);
+  const { data: rows, error } = await supabase
+    .from("opportunity_files")
+    .select("id, opportunity_id, label, file_name, storage_path, created_at")
+    .order("created_at", { ascending: true });
   if (error) {
-    console.error("getOpportunityCVs (list) failed:", error.message);
+    console.error("getOpportunityFilesGrouped (list) failed:", error.message);
     return {};
   }
 
-  const result: Record<string, CVInfo> = {};
+  const result: Record<string, OpportunityFile[]> = {};
 
   await Promise.all(
-    (files ?? []).map(async (f) => {
-      const match = f.name.match(/^(.+)-cv\.[^.]+$/);
-      if (!match) return;
-      const opportunityId = match[1];
-      const path = `${user.id}/opportunities/${f.name}`;
+    (rows ?? []).map(async (row) => {
       const { data: signed, error: signError } = await supabase.storage
         .from("documents")
-        .createSignedUrl(path, 300);
+        .createSignedUrl(row.storage_path, 300); // 5 minutes, regenerated on every page load
       if (signError) {
-        console.error("getOpportunityCVs (sign) failed:", signError.message);
+        console.error("getOpportunityFilesGrouped (sign) failed:", signError.message);
       }
-      result[opportunityId] = {
-        name: f.name,
-        updatedAt: f.updated_at ?? f.created_at ?? new Date().toISOString(),
+      const entry: OpportunityFile = {
+        id: row.id,
+        label: row.label,
+        fileName: row.file_name,
+        createdAt: row.created_at,
         url: signed?.signedUrl ?? null,
       };
+      (result[row.opportunity_id] ??= []).push(entry);
     })
   );
 

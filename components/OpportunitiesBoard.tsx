@@ -2,6 +2,7 @@ import { addOpportunity } from "@/app/actions";
 import { OpportunityRow } from "./OpportunityRow";
 import { TypeSelect } from "./TypeSelect";
 import { SubmitButton } from "./SubmitButton";
+import type { OpportunityFile } from "@/lib/documents";
 
 type Opportunity = {
   id: string;
@@ -16,8 +17,6 @@ type Opportunity = {
   deadline: string | null;
 };
 
-type CVInfo = { name: string; url: string | null };
-
 const STATUS_ORDER = ["watching", "applied", "interview", "offer", "rejected"] as const;
 const STATUS_LABELS: Record<string, string> = {
   watching: "Watching",
@@ -29,10 +28,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function OpportunitiesBoard({
   opportunities,
-  cvsByOpportunity,
+  filesByOpportunity,
 }: {
   opportunities: Opportunity[];
-  cvsByOpportunity: Record<string, CVInfo>;
+  filesByOpportunity: Record<string, OpportunityFile[]>;
 }) {
   return (
     <div
@@ -49,6 +48,54 @@ export function OpportunitiesBoard({
           className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
         />
         <TypeSelect />
+        <select
+          name="status"
+          defaultValue="watching"
+          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        >
+          {STATUS_ORDER.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABELS[s]}
+            </option>
+          ))}
+        </select>
+        <input
+          type="text"
+          name="nextAction"
+          placeholder="Next action"
+          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            name="location"
+            placeholder="Location (e.g. Remote, London)"
+            className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          />
+          <input
+            type="date"
+            name="deadline"
+            className="rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          />
+        </div>
+        <input
+          type="url"
+          name="link"
+          placeholder="Link (job posting URL)"
+          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        />
+        <input
+          type="text"
+          name="contact"
+          placeholder="Contact (name, email)"
+          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        />
+        <textarea
+          name="notes"
+          placeholder="Notes"
+          rows={2}
+          className="w-full resize-none rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        />
         <SubmitButton>Add</SubmitButton>
       </form>
 
@@ -68,7 +115,7 @@ export function OpportunitiesBoard({
                 </h3>
                 <div className="space-y-2">
                   {group.map((o) => (
-                    <OpportunityRow key={o.id} opp={o} cv={cvsByOpportunity[o.id] ?? null} />
+                    <OpportunityRow key={o.id} opp={o} files={filesByOpportunity[o.id] ?? []} />
                   ))}
                 </div>
               </div>
