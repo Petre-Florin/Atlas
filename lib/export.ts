@@ -19,6 +19,12 @@ function stripUserId(rows: Record<string, unknown>[] | null): Record<string, unk
   return (rows ?? []).map(({ user_id: _userId, ...rest }) => rest);
 }
 
+function logIfError(label: string, error: { message: string } | null) {
+  if (error) {
+    console.error(`getFullExport (${label}) failed:`, error.message);
+  }
+}
+
 export async function getFullExport(): Promise<FullExport | null> {
   const supabase = await createClient();
   const {
@@ -36,6 +42,14 @@ export async function getFullExport(): Promise<FullExport | null> {
       supabase.from("goal_templates").select("*").eq("user_id", user.id),
       supabase.from("opportunities").select("*").eq("user_id", user.id),
     ]);
+
+  logIfError("goals", goals.error);
+  logIfError("habits", habits.error);
+  logIfError("habitLogs", habitLogs.error);
+  logIfError("journalEntries", journalEntries.error);
+  logIfError("targets", targets.error);
+  logIfError("goalTemplates", goalTemplates.error);
+  logIfError("opportunities", opportunities.error);
 
   return {
     version: EXPORT_VERSION,

@@ -353,12 +353,11 @@ export async function moveHabit(formData: FormData) {
   const current = habits[index];
   const swap = habits[swapIndex];
 
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    supabase.from("habits").update({ sort_order: swap.sort_order }).eq("id", current.id),
-    supabase.from("habits").update({ sort_order: current.sort_order }).eq("id", swap.id),
-  ]);
-  logIfError("moveHabit (swap 1)", e1);
-  logIfError("moveHabit (swap 2)", e2);
+  const { error } = await supabase.rpc("swap_habit_sort_order", {
+    id_a: current.id,
+    id_b: swap.id,
+  });
+  logIfError("moveHabit (swap)", error);
 
   revalidatePath("/");
   revalidatePath("/habits");
@@ -486,12 +485,11 @@ export async function moveTarget(formData: FormData) {
   const current = targets[index];
   const swap = targets[swapIndex];
 
-  const [{ error: e1 }, { error: e2 }] = await Promise.all([
-    supabase.from("targets").update({ sort_order: swap.sort_order }).eq("id", current.id),
-    supabase.from("targets").update({ sort_order: current.sort_order }).eq("id", swap.id),
-  ]);
-  logIfError("moveTarget (swap 1)", e1);
-  logIfError("moveTarget (swap 2)", e2);
+  const { error } = await supabase.rpc("swap_target_sort_order", {
+    id_a: current.id,
+    id_b: swap.id,
+  });
+  logIfError("moveTarget (swap)", error);
 
   revalidatePath("/");
   revalidatePath("/targets");

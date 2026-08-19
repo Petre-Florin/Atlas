@@ -183,6 +183,42 @@ begin
 end;
 $$ language plpgsql;
 
+-- Atomic sort-order swaps, replacing the old client-side pattern of two
+-- separate parallel .update() calls per reorder click, which could leave
+-- two rows sharing a sort_order if one update succeeded and the other
+-- didn't. Each swap now happens as a single function call.
+create or replace function swap_habit_sort_order(id_a uuid, id_b uuid)
+returns void as $$
+declare
+  sort_a int;
+  sort_b int;
+begin
+  select sort_order into sort_a from habits where id = id_a and user_id = auth.uid();
+  select sort_order into sort_b from habits where id = id_b and user_id = auth.uid();
+  if sort_a is null or sort_b is null then
+    return;
+  end if;
+  update habits set sort_order = sort_b where id = id_a and user_id = auth.uid();
+  update habits set sort_order = sort_a where id = id_b and user_id = auth.uid();
+end;
+$$ language plpgsql;
+
+create or replace function swap_target_sort_order(id_a uuid, id_b uuid)
+returns void as $$
+declare
+  sort_a int;
+  sort_b int;
+begin
+  select sort_order into sort_a from targets where id = id_a and user_id = auth.uid();
+  select sort_order into sort_b from targets where id = id_b and user_id = auth.uid();
+  if sort_a is null or sort_b is null then
+    return;
+  end if;
+  update targets set sort_order = sort_b where id = id_a and user_id = auth.uid();
+  update targets set sort_order = sort_a where id = id_b and user_id = auth.uid();
+end;
+$$ language plpgsql;
+
 -- ============================================================
 -- GOAL TEMPLATES (saved titles for one-click quick-add to
 -- today's goals — set once, reuse anytime). New table.

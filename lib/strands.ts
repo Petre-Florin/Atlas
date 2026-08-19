@@ -7,11 +7,26 @@ function logIfError(label: string, error: { message: string } | null) {
   }
 }
 
+// RLS already scopes every table to the signed-in user, but every read
+// here also filters on user_id explicitly as a second, independent
+// layer — so a single misconfigured policy can't silently turn into a
+// data leak. Mirrors the same principle already applied to writes and
+// to the JSON import path.
+async function getUserId(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
 async function getGoalsForDate(dateStr: string) {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("goals")
     .select("id, title, done")
+    .eq("user_id", userId)
     .eq("for_date", dateStr)
     .order("created_at", { ascending: true });
   logIfError(`getGoalsForDate(${dateStr})`, error);
@@ -139,9 +154,12 @@ export async function getTomorrowGoals() {
 
 export async function getGoalTemplates() {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("goal_templates")
     .select("id, title")
+    .eq("user_id", userId)
     .order("sort_order", { ascending: true });
   logIfError("getGoalTemplates", error);
   return data ?? [];
@@ -150,15 +168,19 @@ export async function getGoalTemplates() {
 export async function getHabitsWithStreaks() {
   const today = await getTodayForUser();
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const [habitsRes, logsRes] = await Promise.all([
     supabase
       .from("habits")
       .select("id, name, frequency_type, frequency_days, frequency_count")
+      .eq("user_id", userId)
       .eq("archived", false)
       .order("sort_order", { ascending: true }),
     supabase
       .from("habit_logs")
       .select("habit_id, for_date")
+      .eq("user_id", userId)
       .order("for_date", { ascending: false }),
   ]);
   logIfError("getHabitsWithStreaks (habits)", habitsRes.error);
@@ -214,9 +236,12 @@ export async function getHabitsWithStreaks() {
 export async function getTodayJournal() {
   const today = await getTodayForUser();
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return { wins: "", mistakes: "", tomorrow: "", productivity: null };
   const { data, error } = await supabase
     .from("journal_entries")
     .select("wins, mistakes, tomorrow, productivity")
+    .eq("user_id", userId)
     .eq("for_date", today)
     .maybeSingle();
   logIfError("getTodayJournal", error);
@@ -225,9 +250,12 @@ export async function getTodayJournal() {
 
 export async function getRecentJournalEntries(limit = 7) {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("journal_entries")
     .select("for_date, wins, mistakes, tomorrow, productivity")
+    .eq("user_id", userId)
     .order("for_date", { ascending: false })
     .limit(limit);
   logIfError("getRecentJournalEntries", error);
@@ -268,9 +296,12 @@ type ActivityItem = { date: string; label: string };
 
 export async function getArchivedHabits() {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("habits")
     .select("id, name")
+    .eq("user_id", userId)
     .eq("archived", true)
     .order("created_at", { ascending: true });
   logIfError("getArchivedHabits", error);
@@ -279,9 +310,12 @@ export async function getArchivedHabits() {
 
 export async function getOpportunities() {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("opportunities")
     .select("id, name, type, status, next_action, notes, link, contact, location, deadline")
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
   logIfError("getOpportunities", error);
   return data ?? [];
@@ -289,9 +323,12 @@ export async function getOpportunities() {
 
 export async function getTargets() {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("targets")
     .select("id, title, unit, current_count, target_count")
+    .eq("user_id", userId)
     .eq("archived", false)
     .order("sort_order", { ascending: true });
   logIfError("getTargets", error);
@@ -300,9 +337,12 @@ export async function getTargets() {
 
 export async function getArchivedTargets() {
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("targets")
     .select("id, title, unit, current_count, target_count")
+    .eq("user_id", userId)
     .eq("archived", true)
     .order("created_at", { ascending: true });
   logIfError("getArchivedTargets", error);
@@ -396,6 +436,17 @@ export type DashboardData = {
 export async function getDashboardData(): Promise<DashboardData> {
   const today = await getTodayForUser();
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return {
+      goals: [],
+      habits: [],
+      journal: { wins: "", mistakes: "", tomorrow: "", productivity: null },
+      activity: [],
+      generalDates: new Set(),
+      targets: [],
+    };
+  }
 
   // A 60-day buffer comfortably covers the 35-day heatmap and the
   // recent-activity feed without re-fetching a user's entire goal/journal
@@ -412,24 +463,29 @@ export async function getDashboardData(): Promise<DashboardData> {
     supabase
       .from("habits")
       .select("id, name, frequency_type, frequency_days, frequency_count")
+      .eq("user_id", userId)
       .eq("archived", false)
       .order("sort_order", { ascending: true }),
     supabase
       .from("habit_logs")
       .select("habit_id, for_date, created_at")
+      .eq("user_id", userId)
       .order("for_date", { ascending: false }),
     supabase
       .from("goals")
       .select("id, title, done, completed_at, for_date")
+      .eq("user_id", userId)
       .gte("for_date", windowStart)
       .order("created_at", { ascending: true }),
     supabase
       .from("journal_entries")
       .select("for_date, wins, mistakes, tomorrow, productivity, updated_at")
+      .eq("user_id", userId)
       .gte("for_date", windowStart),
     supabase
       .from("targets")
       .select("id, title, unit, current_count, target_count")
+      .eq("user_id", userId)
       .eq("archived", false)
       .order("sort_order", { ascending: true }),
   ]);
@@ -557,16 +613,35 @@ export async function getAnalyticsData(days = 30): Promise<AnalyticsData> {
   const startDate = dates[0];
 
   const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) {
+    return {
+      scoreHistory: dates.map((date) => ({ date, score: null })),
+      habitConsistency: [],
+      journalStats: { entriesInWindow: 0, currentStreak: 0, windowDays: days },
+      productivityHistory: dates.map((date) => ({ date, productivity: null })),
+    };
+  }
   const [goalsRes, habitsRes, logsRes, journalRes] = await Promise.all([
-    supabase.from("goals").select("for_date, done").gte("for_date", startDate),
+    supabase
+      .from("goals")
+      .select("for_date, done")
+      .eq("user_id", userId)
+      .gte("for_date", startDate),
     supabase
       .from("habits")
       .select("id, name, created_at, frequency_type, frequency_days, frequency_count")
+      .eq("user_id", userId)
       .eq("archived", false),
-    supabase.from("habit_logs").select("habit_id, for_date").gte("for_date", startDate),
+    supabase
+      .from("habit_logs")
+      .select("habit_id, for_date")
+      .eq("user_id", userId)
+      .gte("for_date", startDate),
     supabase
       .from("journal_entries")
       .select("for_date, wins, mistakes, tomorrow, productivity")
+      .eq("user_id", userId)
       .gte("for_date", startDate),
   ]);
   logIfError("getAnalyticsData (goals)", goalsRes.error);
