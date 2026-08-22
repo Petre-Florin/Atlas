@@ -354,3 +354,50 @@ create policy "Users manage their own opportunity files"
   on opportunity_files for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- ============================================================
+-- PROJECTS — the medium-horizon layer between daily Goals/Habits
+-- and the career-facing Opportunities pipeline. Tracks what you're
+-- actually building (Atlas itself, Sidebuild tools, housing
+-- analytics, etc.), what the next action on each one is, and how
+-- long it's been since you last touched it — honestly, via a
+-- timestamp you set yourself, not a fabricated progress score.
+-- ============================================================
+create table if not exists projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  status text not null default 'active', -- 'active' | 'paused' | 'done'
+  next_action text not null default '',
+  notes text not null default '',
+  link text not null default '',
+  archived boolean not null default false,
+  sort_order int not null default 0,
+  last_touched_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists projects_user_idx on projects (user_id);
+
+alter table projects enable row level security;
+
+create policy "Users manage their own projects"
+  on projects for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create or replace function swap_project_sort_order(id_a uuid, id_b uuid)
+returns void as $$
+declare
+  sort_a int;
+  sort_b int;
+begin
+  select sort_order into sort_a from projects where id = id_a and user_id = auth.uid();
+  select sort_order into sort_b from projects where id = id_b and user_id = auth.uid();
+  if sort_a is null or sort_b is null then
+    return;
+  end if;
+  update projects set sort_order = sort_b where id = id_a and user_id = auth.uid();
+  update projects set sort_order = sort_a where id = id_b and user_id = auth.uid();
+end;
+$$ language plpgsql;

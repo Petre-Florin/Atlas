@@ -495,6 +495,142 @@ export async function moveTarget(formData: FormData) {
   revalidatePath("/targets");
 }
 
+// ---------- Projects ----------
+
+export async function addProject(formData: FormData) {
+  const name = String(formData.get("name") || "").trim();
+  const status = String(formData.get("status") || "active").trim();
+  const nextAction = String(formData.get("nextAction") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  const link = String(formData.get("link") || "").trim();
+  if (!name) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("projects")
+    .select("sort_order")
+    .eq("user_id", user.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const nextOrder = (existing?.[0]?.sort_order ?? 0) + 1;
+
+  const { error } = await supabase.from("projects").insert({
+    user_id: user.id,
+    name,
+    status,
+    next_action: nextAction,
+    notes,
+    link,
+    sort_order: nextOrder,
+  });
+  logIfError("addProject", error);
+
+  revalidatePath("/projects");
+}
+
+export async function editProject(formData: FormData) {
+  const id = String(formData.get("id"));
+  const name = String(formData.get("name") || "").trim();
+  const status = String(formData.get("status") || "active").trim();
+  const nextAction = String(formData.get("nextAction") || "").trim();
+  const notes = String(formData.get("notes") || "").trim();
+  const link = String(formData.get("link") || "").trim();
+  if (!name) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("projects")
+    .update({ name, status, next_action: nextAction, notes, link })
+    .eq("id", id);
+  logIfError("editProject", error);
+
+  revalidatePath("/projects");
+}
+
+export async function touchProject(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("projects")
+    .update({ last_touched_at: new Date().toISOString() })
+    .eq("id", id);
+  logIfError("touchProject", error);
+
+  revalidatePath("/projects");
+}
+
+export async function archiveProject(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").update({ archived: true }).eq("id", id);
+  logIfError("archiveProject", error);
+
+  revalidatePath("/projects");
+}
+
+export async function restoreProject(formData: FormData) {
+  const id = String(formData.get("id"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").update({ archived: false }).eq("id", id);
+  logIfError("restoreProject", error);
+
+  revalidatePath("/projects");
+}
+
+export async function moveProject(formData: FormData) {
+  const id = String(formData.get("id"));
+  const direction = String(formData.get("direction")); // "up" | "down"
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: projects, error: listError } = await supabase
+    .from("projects")
+    .select("id, sort_order")
+    .eq("user_id", user.id)
+    .eq("archived", false)
+    .order("sort_order", { ascending: true });
+  logIfError("moveProject (list)", listError);
+  if (!projects) return;
+
+  const index = projects.findIndex((p) => p.id === id);
+  const swapIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || swapIndex < 0 || swapIndex >= projects.length) return;
+
+  const current = projects[index];
+  const swap = projects[swapIndex];
+
+  const { error } = await supabase.rpc("swap_project_sort_order", {
+    id_a: current.id,
+    id_b: swap.id,
+  });
+  logIfError("moveProject (swap)", error);
+
+  revalidatePath("/projects");
+}
+
+export async function updateProjectStatus(formData: FormData) {
+  const id = String(formData.get("id"));
+  const status = String(formData.get("status"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("projects").update({ status }).eq("id", id);
+  logIfError("updateProjectStatus", error);
+
+  revalidatePath("/projects");
+}
+
 // ---------- Opportunities ----------
 
 export async function addOpportunity(formData: FormData) {

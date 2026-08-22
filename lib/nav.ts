@@ -6,11 +6,11 @@ export const activeStrands = [
   { href: "/journal", label: "Journal", icon: "✎" },
   { href: "/analytics", label: "Analytics", icon: "▤" },
   { href: "/opportunities", label: "Opportunities", icon: "◇" },
+  { href: "/projects", label: "Projects", icon: "⚑" },
 ];
 
 export const futureStrands = [
   { label: "Learning" },
-  { label: "Projects" },
   { label: "Finance" },
   { label: "Knowledge" },
 ];

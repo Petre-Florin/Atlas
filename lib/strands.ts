@@ -349,6 +349,34 @@ export async function getArchivedTargets() {
   return data ?? [];
 }
 
+export async function getProjects() {
+  const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, name, status, next_action, notes, link, last_touched_at")
+    .eq("user_id", userId)
+    .eq("archived", false)
+    .order("sort_order", { ascending: true });
+  logIfError("getProjects", error);
+  return data ?? [];
+}
+
+export async function getArchivedProjects() {
+  const supabase = await createClient();
+  const userId = await getUserId(supabase);
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, name, status, last_touched_at")
+    .eq("user_id", userId)
+    .eq("archived", true)
+    .order("created_at", { ascending: true });
+  logIfError("getArchivedProjects", error);
+  return data ?? [];
+}
+
 const MILESTONE_STREAKS = [7, 14, 30, 60, 100, 150, 200, 365];
 const MILESTONE_WEEKS = [4, 8, 12, 26, 52, 104];
 
