@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -24,6 +24,19 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Atlas",
   description: "A modular operating system for your own life.",
+  appleWebApp: {
+    capable: true,
+    title: "Atlas",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#14161c",
 };
 
 export default function RootLayout({
