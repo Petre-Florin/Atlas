@@ -31,7 +31,7 @@ export default async function ResetPasswordPage({
               required
               minLength={6}
               autoComplete="new-password"
-              className="w-full rounded-md border border-hairline bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-thread"
+              className="field w-full text-sm"
             />
           </div>
 

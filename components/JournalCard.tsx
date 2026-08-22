@@ -169,7 +169,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         rows={2}
-        className="w-full resize-none rounded-md border border-hairline bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-thread"
+        className="field resize-none w-full text-sm"
       />
     </div>
   );

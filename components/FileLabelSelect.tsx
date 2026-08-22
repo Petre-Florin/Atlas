@@ -12,7 +12,7 @@ export function FileLabelSelect() {
       <select
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
-        className="rounded-md border border-hairline bg-ink px-2 py-1 text-xs text-paper outline-none focus:border-thread"
+        className="field field-select field-sm text-xs"
       >
         {LABEL_PRESETS.map((l) => (
           <option key={l} value={l}>
@@ -27,7 +27,7 @@ export function FileLabelSelect() {
           name="label"
           placeholder="Custom label"
           required
-          className="flex-1 rounded-md border border-hairline bg-ink px-2 py-1 text-xs text-paper outline-none focus:border-thread"
+          className="field field-sm flex-1 text-xs"
         />
       ) : (
         <input type="hidden" name="label" value={selected} />

@@ -30,7 +30,7 @@ export default async function ForgotPasswordPage({
               type="email"
               required
               autoComplete="email"
-              className="w-full rounded-md border border-hairline bg-ink px-3 py-2 text-sm text-paper outline-none focus:border-thread"
+              className="field w-full text-sm"
             />
           </div>
 

@@ -114,3 +114,59 @@ body {
 .animate-ring {
   animation: ring-fill 0.8s ease-out both;
 }
+
+/* ============================================================
+   Editorial form fields — an underline instead of a boxed input,
+   matching a ledger/journal feel rather than a generic admin-panel
+   look. `.field` is the base (inputs, textareas, selects); add
+   `.field-select` on <select> elements for the custom chevron
+   (native select chrome doesn't respect a borderless underline
+   without appearance:none); add `.field-sm` in compact contexts
+   like inline edit rows.
+   ============================================================ */
+.field {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  padding: 0.5rem 0.125rem;
+  color: var(--paper);
+  transition: border-color 0.15s ease;
+}
+
+.field-sm {
+  padding: 0.25rem 0.125rem;
+}
+
+.field::placeholder {
+  color: var(--paper-faint);
+}
+
+.field:focus {
+  outline: none;
+  border-bottom-color: var(--thread);
+}
+
+.field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b8d97' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.0625rem center;
+  padding-right: 1rem;
+  cursor: pointer;
+}
+
+/* Small inline row actions (Edit, Remove, Save, Cancel, Restore) — an
+   underline appears on hover instead of a background chip, echoing the
+   same underline language as the form fields above. Uses currentColor
+   so it always matches whatever hover text color the button already
+   declares, without needing a matching border-color utility per variant. */
+.text-action {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.text-action:hover {
+  border-bottom-color: currentColor;
+}

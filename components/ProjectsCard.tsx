@@ -52,12 +52,12 @@ export function ProjectsCard({
           type="text"
           name="name"
           placeholder="Name (e.g. Atlas, Sidebuild, housing analytics)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <select
           name="status"
           defaultValue="active"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field field-select w-full text-sm"
         >
           <option value="active">Active</option>
           <option value="paused">Paused</option>
@@ -67,19 +67,19 @@ export function ProjectsCard({
           type="text"
           name="nextAction"
           placeholder="Next action"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <input
           type="url"
           name="link"
           placeholder="Link (repo, doc, etc. — optional)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <textarea
           name="notes"
           placeholder="Notes (optional)"
           rows={2}
-          className="w-full resize-none rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field resize-none w-full text-sm"
         />
         <SubmitButton>Add</SubmitButton>
       </form>
@@ -97,7 +97,7 @@ export function ProjectsCard({
                   <input type="hidden" name="id" value={project.id} />
                   <button
                     type="submit"
-                    className="rounded-md px-2 py-0.5 text-xs text-thread transition-colors hover:bg-thread-soft"
+                    className="text-action rounded-md px-2 py-0.5 text-xs text-thread transition-colors"
                   >
                     Restore
                   </button>

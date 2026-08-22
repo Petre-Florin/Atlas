@@ -46,7 +46,7 @@ export function QuickAddGoals({ templates }: { templates: Template[] }) {
                 <input type="hidden" name="id" value={t.id} />
                 <button
                   type="submit"
-                  className="rounded-md px-2 py-0.5 text-xs text-paper-faint transition-colors hover:text-rust"
+                  className="text-action rounded-md px-2 py-0.5 text-xs text-paper-faint transition-colors hover:text-rust"
                 >
                   Remove
                 </button>
@@ -58,7 +58,7 @@ export function QuickAddGoals({ templates }: { templates: Template[] }) {
               type="text"
               name="title"
               placeholder="Save a new quick-add goal"
-              className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+              className="field flex-1 text-sm"
             />
             <SubmitButton>Save</SubmitButton>
           </form>

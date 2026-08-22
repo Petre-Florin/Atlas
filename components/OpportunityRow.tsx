@@ -75,7 +75,7 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
           defaultValue={opp.name}
           placeholder="Name"
           autoFocus
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <TypeSelect defaultValue={opp.type} />
         <input
@@ -83,7 +83,7 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
           name="nextAction"
           defaultValue={opp.next_action}
           placeholder="Next action"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <div className="flex gap-2">
           <input
@@ -91,13 +91,13 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
             name="location"
             defaultValue={opp.location}
             placeholder="Location (e.g. Remote, London)"
-            className="flex-1 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm flex-1 text-sm"
           />
           <input
             type="date"
             name="deadline"
             defaultValue={opp.deadline ?? ""}
-            className="rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm text-sm"
           />
         </div>
         <input
@@ -105,26 +105,26 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
           name="link"
           defaultValue={opp.link}
           placeholder="Link (job posting URL)"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <input
           type="text"
           name="contact"
           defaultValue={opp.contact}
           placeholder="Contact (name, email)"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <textarea
           name="notes"
           defaultValue={opp.notes}
           placeholder="Notes"
           rows={2}
-          className="w-full resize-none rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm resize-none w-full text-sm"
         />
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+            className="text-action rounded-md px-2 py-1 text-xs text-thread transition-colors"
           >
             Save
           </button>
@@ -175,7 +175,7 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-paper"
             aria-label="Edit opportunity"
           >
             Edit
@@ -184,7 +184,7 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
             <input type="hidden" name="id" value={opp.id} />
             <button
               type="submit"
-              className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+              className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-rust"
               aria-label="Remove opportunity"
             >
               Remove
@@ -195,7 +195,7 @@ export function OpportunityRow({ opp, files }: { opp: Opportunity; files: Opport
       <select
         value={status}
         onChange={(e) => handleStatusChange(e.target.value)}
-        className="rounded-md border border-hairline bg-ink px-2 py-1 text-xs text-paper outline-none focus:border-thread"
+        className="field field-select field-sm text-xs"
       >
         {STATUSES.map((s) => (
           <option key={s} value={s}>

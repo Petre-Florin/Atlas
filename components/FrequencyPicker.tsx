@@ -94,7 +94,7 @@ export function FrequencyPicker({
             defaultValue={defaultCount}
             min={1}
             max={7}
-            className="w-16 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm w-16 text-sm"
           />
         </div>
       )}

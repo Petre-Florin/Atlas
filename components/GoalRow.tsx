@@ -41,18 +41,18 @@ export function GoalRow({ goal, locked = false }: { goal: Goal; locked?: boolean
           name="title"
           defaultValue={goal.title}
           autoFocus
-          className="flex-1 rounded-md border border-thread bg-ink px-2 py-1 text-sm text-paper outline-none"
+          className="field field-sm flex-1 text-sm"
         />
         <button
           type="submit"
-          className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+          className="text-action rounded-md px-2 py-1 text-xs text-thread transition-colors"
         >
           Save
         </button>
         <button
           type="button"
           onClick={() => setEditing(false)}
-          className="rounded-md px-2 py-1 text-xs text-paper-faint transition-colors hover:text-paper-muted"
+          className="text-action rounded-md px-2 py-1 text-xs text-paper-faint transition-colors hover:text-paper-muted"
         >
           Cancel
         </button>
@@ -93,7 +93,7 @@ export function GoalRow({ goal, locked = false }: { goal: Goal; locked?: boolean
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+          className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-paper"
           aria-label="Edit goal"
         >
           Edit
@@ -102,7 +102,7 @@ export function GoalRow({ goal, locked = false }: { goal: Goal; locked?: boolean
           <input type="hidden" name="id" value={goal.id} />
           <button
             type="submit"
-            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+            className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-rust"
             aria-label="Delete goal"
           >
             Remove

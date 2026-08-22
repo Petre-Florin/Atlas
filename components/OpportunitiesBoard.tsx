@@ -45,13 +45,13 @@ export function OpportunitiesBoard({
           type="text"
           name="name"
           placeholder="Name (e.g. OpenAI, a hackathon, a contact)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <TypeSelect />
         <select
           name="status"
           defaultValue="watching"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field field-select w-full text-sm"
         >
           {STATUS_ORDER.map((s) => (
             <option key={s} value={s}>
@@ -63,38 +63,38 @@ export function OpportunitiesBoard({
           type="text"
           name="nextAction"
           placeholder="Next action"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <div className="flex gap-2">
           <input
             type="text"
             name="location"
             placeholder="Location (e.g. Remote, London)"
-            className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+            className="field flex-1 text-sm"
           />
           <input
             type="date"
             name="deadline"
-            className="rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+            className="field text-sm"
           />
         </div>
         <input
           type="url"
           name="link"
           placeholder="Link (job posting URL)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <input
           type="text"
           name="contact"
           placeholder="Contact (name, email)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <textarea
           name="notes"
           placeholder="Notes"
           rows={2}
-          className="w-full resize-none rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field resize-none w-full text-sm"
         />
         <SubmitButton>Add</SubmitButton>
       </form>

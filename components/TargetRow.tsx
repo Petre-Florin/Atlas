@@ -68,7 +68,7 @@ export function TargetRow({
           defaultValue={target.title}
           autoFocus
           placeholder="Title"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <div className="flex gap-2">
           <input
@@ -76,7 +76,7 @@ export function TargetRow({
             name="unit"
             defaultValue={target.unit}
             placeholder="Unit (e.g. questions)"
-            className="flex-1 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm flex-1 text-sm"
           />
           <input
             type="number"
@@ -84,7 +84,7 @@ export function TargetRow({
             defaultValue={target.current_count}
             min={0}
             placeholder="Current"
-            className="w-24 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm w-24 text-sm"
           />
           <input
             type="number"
@@ -92,13 +92,13 @@ export function TargetRow({
             defaultValue={target.target_count}
             min={0}
             placeholder="Target"
-            className="w-24 rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+            className="field field-sm w-24 text-sm"
           />
         </div>
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+            className="text-action rounded-md px-2 py-1 text-xs text-thread transition-colors"
           >
             Save
           </button>
@@ -144,7 +144,7 @@ export function TargetRow({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-paper"
             aria-label="Edit target"
           >
             Edit
@@ -153,7 +153,7 @@ export function TargetRow({
             <input type="hidden" name="id" value={target.id} />
             <button
               type="submit"
-              className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+              className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-rust"
               aria-label="Remove target"
             >
               Remove
@@ -168,7 +168,7 @@ export function TargetRow({
             type="button"
             onClick={() => handleIncrement(-1)}
             aria-label="Decrease by 1"
-            className="rounded-md px-2 py-0.5 text-sm text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            className="text-action rounded-md px-2 py-0.5 text-sm text-paper-muted transition-colors hover:text-paper"
           >
             −
           </button>
@@ -179,7 +179,7 @@ export function TargetRow({
             type="button"
             onClick={() => handleIncrement(1)}
             aria-label="Increase by 1"
-            className="rounded-md px-2 py-0.5 text-sm text-thread transition-colors hover:bg-thread-soft"
+            className="text-action rounded-md px-2 py-0.5 text-sm text-thread transition-colors"
           >
             +
           </button>

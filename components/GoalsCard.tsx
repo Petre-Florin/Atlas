@@ -73,7 +73,7 @@ export function GoalsCard({
           type="text"
           name="title"
           placeholder={isTomorrow ? "Add a goal for tomorrow" : "Add a goal for today"}
-          className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field flex-1 text-sm"
         />
         <SubmitButton>Add</SubmitButton>
       </form>

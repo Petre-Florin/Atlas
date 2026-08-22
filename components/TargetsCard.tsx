@@ -43,21 +43,21 @@ export function TargetsCard({
           type="text"
           name="title"
           placeholder="Title (e.g. LeetCode questions)"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <div className="flex gap-2">
           <input
             type="text"
             name="unit"
             placeholder="Unit (optional, e.g. questions)"
-            className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+            className="field flex-1 text-sm"
           />
           <input
             type="number"
             name="targetCount"
             min={0}
             placeholder="Target (optional)"
-            className="w-32 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+            className="field w-32 text-sm"
           />
           <SubmitButton>Add</SubmitButton>
         </div>
@@ -82,7 +82,7 @@ export function TargetsCard({
                   <input type="hidden" name="id" value={target.id} />
                   <button
                     type="submit"
-                    className="rounded-md px-2 py-0.5 text-xs text-thread transition-colors hover:bg-thread-soft"
+                    className="text-action rounded-md px-2 py-0.5 text-xs text-thread transition-colors"
                   >
                     Restore
                   </button>

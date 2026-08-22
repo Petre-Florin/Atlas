@@ -52,7 +52,7 @@ export function HabitsCard({
           type="text"
           name="name"
           placeholder="Add a habit"
-          className="w-full rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field w-full text-sm"
         />
         <FrequencyPicker />
         <SubmitButton>Add</SubmitButton>
@@ -74,7 +74,7 @@ export function HabitsCard({
                   <input type="hidden" name="id" value={habit.id} />
                   <button
                     type="submit"
-                    className="rounded-md px-2 py-0.5 text-xs text-thread transition-colors hover:bg-thread-soft"
+                    className="text-action rounded-md px-2 py-0.5 text-xs text-thread transition-colors"
                   >
                     Restore
                   </button>

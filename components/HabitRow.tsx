@@ -87,7 +87,7 @@ export function HabitRow({
           name="name"
           defaultValue={habit.name}
           autoFocus
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <FrequencyPicker
           defaultType={habit.frequency.type}
@@ -97,7 +97,7 @@ export function HabitRow({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+            className="text-action rounded-md px-2 py-1 text-xs text-thread transition-colors"
           >
             Save
           </button>
@@ -169,7 +169,7 @@ export function HabitRow({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-paper"
             aria-label="Edit habit"
           >
             Edit
@@ -178,7 +178,7 @@ export function HabitRow({
             <input type="hidden" name="id" value={habit.id} />
             <button
               type="submit"
-              className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+              className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-rust"
               aria-label="Remove habit"
             >
               Remove

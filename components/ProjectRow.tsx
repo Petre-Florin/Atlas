@@ -94,12 +94,12 @@ export function ProjectRow({
           defaultValue={project.name}
           autoFocus
           placeholder="Name"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <select
           name="status"
           defaultValue={project.status}
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-select field-sm w-full text-sm"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -112,26 +112,26 @@ export function ProjectRow({
           name="nextAction"
           defaultValue={project.next_action}
           placeholder="Next action"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <input
           type="url"
           name="link"
           defaultValue={project.link}
           placeholder="Link (repo, doc, etc.)"
-          className="w-full rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm w-full text-sm"
         />
         <textarea
           name="notes"
           defaultValue={project.notes}
           placeholder="Notes"
           rows={2}
-          className="w-full resize-none rounded-md border border-hairline bg-ink px-2 py-1 text-sm text-paper outline-none focus:border-thread"
+          className="field field-sm resize-none w-full text-sm"
         />
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-md px-2 py-1 text-xs text-thread transition-colors hover:bg-thread-soft"
+            className="text-action rounded-md px-2 py-1 text-xs text-thread transition-colors"
           >
             Save
           </button>
@@ -177,7 +177,7 @@ export function ProjectRow({
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-paper"
+            className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-paper"
             aria-label="Edit project"
           >
             Edit
@@ -186,7 +186,7 @@ export function ProjectRow({
             <input type="hidden" name="id" value={project.id} />
             <button
               type="submit"
-              className="rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:bg-surface-raised hover:text-rust"
+              className="text-action rounded-md px-2 py-1 text-xs text-paper-muted transition-colors hover:text-rust"
               aria-label="Remove project"
             >
               Remove
@@ -199,7 +199,7 @@ export function ProjectRow({
         <select
           value={status}
           onChange={(e) => handleStatusChange(e.target.value)}
-          className="rounded-md border border-hairline bg-ink px-2 py-1 text-xs text-paper outline-none focus:border-thread"
+          className="field field-select field-sm text-xs"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>

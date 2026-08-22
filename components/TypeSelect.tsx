@@ -27,7 +27,7 @@ export function TypeSelect({ defaultValue = "" }: { defaultValue?: string }) {
       <select
         value={selected}
         onChange={(e) => setSelected(e.target.value)}
-        className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+        className="field field-select flex-1 text-sm"
       >
         <option value="">Select type…</option>
         {TYPE_PRESETS.map((t) => (
@@ -43,7 +43,7 @@ export function TypeSelect({ defaultValue = "" }: { defaultValue?: string }) {
           name="type"
           defaultValue={isPreset ? "" : defaultValue}
           placeholder="Custom type"
-          className="flex-1 rounded-md border border-hairline bg-ink px-3 py-1.5 text-sm text-paper outline-none focus:border-thread"
+          className="field flex-1 text-sm"
         />
       ) : (
         <input type="hidden" name="type" value={selected} />
